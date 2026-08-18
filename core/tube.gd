@@ -73,6 +73,15 @@ func pop_card() -> ColorCard:
 	return _stack.pop_back()
 
 
+## Tüp içeriğini toptan değiştirir (hamle uygula/geri-al snapshot'ları için).
+func replace(cards: Array) -> void:
+	assert(cards.size() <= _capacity, "kapasiteyi aşan içerik")
+	var new_stack: Array[ColorCard] = []
+	for card in cards:
+		new_stack.append(card)
+	_stack = new_stack
+
+
 ## Çözülü mü: boş VEYA (dolu VE tek renk) (TDD §4).
 func is_solved() -> bool:
 	if is_empty():

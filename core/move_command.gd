@@ -1,46 +1,55 @@
 class_name MoveCommand
 extends RefCounted
 
-## "Fişli" hamle (Command — CMD-001/010): kendini uygulama VE geri alma bilgisini taşır.
-## Deterministik ve minimum durum tutar (CMD-013): kaynak/hedef index, taşınan adet, renk.
-## Board.build_move() tarafından üretilir; tek başına geçerlilik varsaymaz.
+## "Fişli" hamle (Command — CMD-001/010): uygulama VE geri alma bilgisini taşır.
+## Snapshot-tabanlı (CMD-013 istisnası): karışım hamlelerinin geri alınması, minimum-delta
+## yerine etkilenen iki tüpün önceki/sonraki içeriğiyle güvenle yapılır. Deterministik.
+## Board.build_move() tarafından Pour hesabından üretilir.
 
 var _from_idx: int
 var _to_idx: int
-var _count: int
-var _card: ColorCard
+var _source_before: Array
+var _dest_before: Array
+var _source_after: Array
+var _dest_after: Array
+var _moved_count: int
+var _poured_color: ColorCard
 
 
-func _init(from_idx: int, to_idx: int, count: int, card: ColorCard) -> void:
-	assert(count > 0, "hamle en az 1 kart taşımalı")
+func _init(
+	from_idx: int, to_idx: int,
+	source_before: Array, dest_before: Array,
+	source_after: Array, dest_after: Array,
+	moved_count: int, poured_color: ColorCard
+) -> void:
+	assert(moved_count > 0, "hamle en az 1 kart taşımalı")
 	_from_idx = from_idx
 	_to_idx = to_idx
-	_count = count
-	_card = card
+	_source_before = source_before
+	_dest_before = dest_before
+	_source_after = source_after
+	_dest_after = dest_after
+	_moved_count = moved_count
+	_poured_color = poured_color
 
 
-## Hamleyi uygular: kaynaktan hedefe _count kart taşır, sonucu döner.
 func apply(board: Board) -> MoveResult:
-	var source := board.tube(_from_idx)
-	var dest := board.tube(_to_idx)
-	for i in _count:
-		dest.push_card(source.pop_card())
+	board.tube(_from_idx).replace(_source_after)
+	board.tube(_to_idx).replace(_dest_after)
+	var dest_solved := board.tube(_to_idx).is_solved()
 	return MoveResult.new(
-		_from_idx, _to_idx, _count, _card,
-		dest.is_solved(), board.is_solved()
+		_from_idx, _to_idx, _moved_count, _poured_color,
+		dest_solved, board.is_solved()
 	)
 
 
-## Hamleyi tersine çevirir: hedeften kaynağa aynı kartları geri taşır (CMD-010).
 func undo(board: Board) -> void:
-	var source := board.tube(_from_idx)
-	var dest := board.tube(_to_idx)
-	for i in _count:
-		source.push_card(dest.pop_card())
+	board.tube(_from_idx).replace(_source_before)
+	board.tube(_to_idx).replace(_dest_before)
 
 
 func moved_count() -> int:
-	return _count
+	return _moved_count
 
 
 func from_index() -> int:
@@ -51,5 +60,6 @@ func to_index() -> int:
 	return _to_idx
 
 
+## Animasyonun uçurduğu renk = dökülen (kaynak) renk.
 func color() -> ColorCard:
-	return _card
+	return _poured_color

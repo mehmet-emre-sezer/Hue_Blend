@@ -5,12 +5,14 @@ extends RefCounted
 ## Saf mantık — Godot düğümü bilmez, headless test edilebilir (TDD §3).
 
 var _tubes: Array[Tube] = []
+var _mix_rules: MixRules  # null → karışım yok (Faz 1 davranışı)
 
 
-func _init(tubes: Array) -> void:
+func _init(tubes: Array, mix_rules: MixRules = null) -> void:
 	assert(not tubes.is_empty(), "board en az bir tüp ister")
 	for tube in tubes:
 		_tubes.append(tube)
+	_mix_rules = mix_rules
 
 
 func tube_count() -> int:
@@ -22,8 +24,7 @@ func tube(index: int) -> Tube:
 
 
 ## Kaynaktan hedefe GEÇERLİ bir hamle kurar; geçersizse null. MUTASYON YOK (saf).
-## Su-ayırma kuralı: üst-bitişik aynı-renk grubu, üstü uyan/boş + yer olan tüpe;
-## taşınan adet = min(kaynak üst-grup, hedef boş alan).
+## Saf dökme (aynı renk/boş) veya karışım (uyumlu temel renkler) — kural Pour'da.
 func build_move(from_idx: int, to_idx: int) -> MoveCommand:
 	if from_idx == to_idx:
 		return null
@@ -31,15 +32,15 @@ func build_move(from_idx: int, to_idx: int) -> MoveCommand:
 		return null
 	var source := _tubes[from_idx]
 	var dest := _tubes[to_idx]
-	if source.is_empty():
+	var outcome := Pour.compute(source.cards_snapshot(), dest.cards_snapshot(), dest.capacity(), _mix_rules)
+	if outcome == null:
 		return null
-	var card := source.top()
-	if not dest.can_accept(card):
-		return null
-	var count := mini(source.top_run_count(), dest.free_space())
-	if count <= 0:
-		return null
-	return MoveCommand.new(from_idx, to_idx, count, card)
+	return MoveCommand.new(
+		from_idx, to_idx,
+		source.cards_snapshot(), dest.cards_snapshot(),
+		outcome.source_after, outcome.dest_after,
+		outcome.moved_count, outcome.poured_color
+	)
 
 
 ## Tahta çözülmüş mü: her tüp çözülü (boş VEYA dolu+tek renk).
