@@ -41,3 +41,15 @@ func undo(board: Board) -> void:
 
 func moved_count() -> int:
 	return _count
+
+
+func from_index() -> int:
+	return _from_idx
+
+
+func to_index() -> int:
+	return _to_idx
+
+
+func color() -> ColorCard:
+	return _card

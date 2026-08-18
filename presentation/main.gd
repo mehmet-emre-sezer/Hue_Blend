@@ -4,7 +4,9 @@ extends Node2D
 ## geri-al ve kazanç ekranını yönetir. Çekirdek ↔ sunum köprüsü (TDD §K1).
 ## Not: dökme animasyonu ve ses sonraki adımlarda; şimdilik anında güncelleme.
 
-const POUR_DURATION := 0.16
+const POUR_DURATION := 0.20
+const POUR_STAGGER := 0.05  # birimler sıra sıra aksın
+const ARC_HEIGHT := 70.0    # ağızdan dökülme kavisi yüksekliği
 
 var _board: Board
 var _history: MoveHistory
@@ -89,53 +91,71 @@ func _try_move(from_index: int, to_index: int) -> void:
 	if move == null:
 		return  # geçersiz hamle → sessizce yok say (geri bildirim sonra)
 
-	# Görsel başlangıç/bitiş noktalarını hamleyi UYGULAMADAN önce yakala.
+	# Görsel bilgiyi hamleyi UYGULAMADAN önce yakala.
 	var count := move.moved_count()
-	var top_card := _board.tube(from_index).top()
-	var from_size := _board.tube(from_index).size()
-	var to_size := _board.tube(to_index).size()
-	var from_view := _board_view.tube_view(from_index)
-	var to_view := _board_view.tube_view(to_index)
+	var color := _board.tube(from_index).top()
+	var source_size := _board.tube(from_index).size()
+	var dest_size := _board.tube(to_index).size()
 
-	var starts: Array[Vector2] = []
-	var ends: Array[Vector2] = []
-	for k in count:
-		starts.append(from_view.slot_world_center(from_size - 1 - k))
-		ends.append(to_view.slot_world_center(to_size + count - 1 - k))
-
-	# Modeli güncelle, kaynağı hemen tazele (birimler kaynaktan ayrılır).
 	var result := _history.apply(move)
-	_board_view.refresh_tube(from_index)
+	_animate_transfer(from_index, to_index, source_size, dest_size, count, color, result.board_solved)
+
+
+func _on_undo_pressed() -> void:
+	if _animating or not _history.can_undo():
+		return
+	_set_selection(-1)
+	_win_overlay.hide()
+	# Son hamle from→to idi; geri alma to→from yönünde akar.
+	var move := _history.peek()
+	var count := move.moved_count()
+	var color := move.color()
+	var source_size := _board.tube(move.to_index()).size()
+	var dest_size := _board.tube(move.from_index()).size()
+	_history.undo_last()
+	_animate_transfer(move.to_index(), move.from_index(), source_size, dest_size, count, color, false)
+
+
+## Birimleri kaynak tüpün üstünden hedefe kavis çizerek akıtır (dökülme hissi).
+## Model çağıran tarafından zaten güncellendi; burada yalnız görsel + girdi kilidi.
+func _animate_transfer(
+	source_index: int, dest_index: int,
+	source_size_before: int, dest_size_before: int,
+	count: int, color: ColorCard, won: bool
+) -> void:
+	var source_view := _board_view.tube_view(source_index)
+	var dest_view := _board_view.tube_view(dest_index)
+	_board_view.refresh_tube(source_index)  # birimler kaynaktan ayrılır
 
 	_animating = true
 	var flyers := Node2D.new()
 	add_child(flyers)
 	var tween := create_tween().set_parallel(true)
 	for k in count:
+		var start_point := source_view.slot_world_center(source_size_before - 1 - k)
+		var end_point := dest_view.slot_world_center(dest_size_before + count - 1 - k)
 		var flyer := FlyingUnit.new()
-		flyer.setup(top_card.display_color, top_card.symbol_id)
-		flyer.global_position = starts[k]
+		flyer.setup(color.display_color, color.symbol_id)
+		flyer.global_position = start_point
 		flyers.add_child(flyer)
-		tween.tween_property(flyer, "global_position", ends[k], POUR_DURATION) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tween.chain().tween_callback(_on_pour_done.bind(flyers, to_index, result))
+		tween.tween_method(
+			_arc_position.bind(flyer, start_point, end_point), 0.0, 1.0, POUR_DURATION
+		).set_delay(k * POUR_STAGGER)
+	tween.chain().tween_callback(_on_transfer_done.bind(flyers, dest_index, won))
 
 
-func _on_pour_done(flyers: Node2D, to_index: int, result: MoveResult) -> void:
+## t=0→1 boyunca doğrusal ilerleme + ortada zirve yapan dikey kavis (ağızdan dökülme).
+func _arc_position(t: float, flyer: FlyingUnit, start_point: Vector2, end_point: Vector2) -> void:
+	var lift := ARC_HEIGHT * sin(t * PI)
+	flyer.global_position = start_point.lerp(end_point, t) - Vector2(0, lift)
+
+
+func _on_transfer_done(flyers: Node2D, dest_index: int, won: bool) -> void:
 	flyers.queue_free()
-	_board_view.refresh_tube(to_index)  # birimler hedefte belirir
+	_board_view.refresh_tube(dest_index)  # birimler hedefte belirir
 	_animating = false
-	if result.board_solved:
+	if won:
 		_win_overlay.show_win(get_viewport_rect().size)
-
-
-func _on_undo_pressed() -> void:
-	if _animating or not _history.can_undo():
-		return
-	_history.undo_last()
-	_board_view.refresh_all()
-	_set_selection(-1)
-	_win_overlay.hide()
 
 
 func _set_selection(index: int) -> void:
