@@ -28,6 +28,15 @@ func play_complete_pulse() -> void:
 	create_tween().tween_method(_set_flash, _flash, 0.0, 0.45).set_ease(Tween.EASE_OUT)
 
 
+## Geçersiz hamlede kısa yatay titreme (hedef kabul etmiyor geri bildirimi).
+func play_invalid_shake() -> void:
+	var base_x := position.x
+	var tween := create_tween()
+	tween.tween_property(self, "position:x", base_x - 7.0, 0.04)
+	tween.tween_property(self, "position:x", base_x + 7.0, 0.04)
+	tween.tween_property(self, "position:x", base_x, 0.04)
+
+
 func _set_flash(value: float) -> void:
 	_flash = value
 	queue_redraw()
@@ -59,11 +68,13 @@ func _draw() -> void:
 	draw_rect(bounds, Color(1, 1, 1, 0.06))  # tüp zemini
 
 	var cards := _tube.cards_snapshot()  # dip→üst
+	var top_index := cards.size() - 1
 	for i in cards.size():
 		var card: ColorCard = cards[i]
 		var y := height - (i + 1) * UnitVisual.UNIT_HEIGHT
+		var lift := -10.0 if (_selected and i == top_index) else 0.0  # seçili üst birim yükselir
 		var rect := Rect2(
-			UnitVisual.PADDING, y + UnitVisual.PADDING,
+			UnitVisual.PADDING, y + UnitVisual.PADDING + lift,
 			UnitVisual.TUBE_WIDTH - 2 * UnitVisual.PADDING,
 			UnitVisual.UNIT_HEIGHT - 2 * UnitVisual.PADDING
 		)

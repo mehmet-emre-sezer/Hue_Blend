@@ -11,6 +11,7 @@ var _colors: ColorRegistry
 var _levels: Array[LevelData]
 var _level_index: int = 0
 var _save: SaveService
+var _settings: Settings
 
 var _board: Board
 var _history: MoveHistory
@@ -24,6 +25,7 @@ func _ready() -> void:
 	_colors = GameContent.colors()
 	_levels = GameContent.levels()
 	_save = SaveService.new()
+	_settings = Settings.new()
 	_level_index = clampi(_save.load_level_index(), 0, _levels.size() - 1)
 	_build_ui()
 	_start_level()
@@ -43,9 +45,20 @@ func _build_ui() -> void:
 	undo_button.pressed.connect(_on_undo_pressed)
 	ui.add_child(undo_button)
 
+	# Reduced-motion aç/kapa (placeholder — Faz 3 ayar ekranında ikonlaşacak).
+	var motion_toggle := CheckButton.new()
+	motion_toggle.button_pressed = _settings.reduced_motion
+	motion_toggle.position = Vector2(get_viewport_rect().size.x - 150, 40)
+	motion_toggle.toggled.connect(_on_reduced_motion_toggled)
+	ui.add_child(motion_toggle)
+
 	_win_overlay = WinOverlay.new()
 	_win_overlay.continue_requested.connect(_on_continue)
 	ui.add_child(_win_overlay)
+
+
+func _on_reduced_motion_toggled(pressed: bool) -> void:
+	_settings.set_reduced_motion(pressed)
 
 
 func _start_level() -> void:
@@ -104,7 +117,8 @@ func _on_tap(screen_position: Vector2) -> void:
 func _try_move(from_index: int, to_index: int) -> void:
 	var move := _board.build_move(from_index, to_index)
 	if move == null:
-		return  # geçersiz hamle → sessizce yok say (geri bildirim sonra)
+		_board_view.tube_view(from_index).play_invalid_shake()  # geçersiz → titre
+		return
 
 	# Görsel bilgiyi hamleyi UYGULAMADAN önce yakala.
 	var count := move.moved_count()
@@ -142,6 +156,10 @@ func _animate_transfer(
 	var dest_view := _board_view.tube_view(dest_index)
 	_board_view.refresh_tube(source_index)  # birimler kaynaktan ayrılır
 
+	if _settings.reduced_motion:
+		_finish_transfer(dest_index, won, dest_solved)  # animasyonsuz anında güncelle
+		return
+
 	_animating = true
 	var flyers := Node2D.new()
 	add_child(flyers)
@@ -167,9 +185,15 @@ func _arc_position(t: float, flyer: FlyingUnit, start_point: Vector2, end_point:
 
 func _on_transfer_done(flyers: Node2D, dest_index: int, won: bool, dest_solved: bool) -> void:
 	flyers.queue_free()
-	_board_view.refresh_tube(dest_index)  # birimler hedefte belirir
 	_animating = false
-	if dest_solved:
+	_finish_transfer(dest_index, won, dest_solved)
+
+
+## Hamlenin görsel sonucu: hedefi tazele, tamamlandıysa parla, kazanıldıysa ekranı göster.
+## Hem animasyonlu hem reduced-motion yolu buraya varır.
+func _finish_transfer(dest_index: int, won: bool, dest_solved: bool) -> void:
+	_board_view.refresh_tube(dest_index)  # birimler hedefte belirir
+	if dest_solved and not _settings.reduced_motion:
 		_board_view.tube_view(dest_index).play_complete_pulse()  # küçük zafer
 	if won:
 		_win_overlay.show_win(get_viewport_rect().size)
