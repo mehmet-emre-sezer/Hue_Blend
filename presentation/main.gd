@@ -4,11 +4,14 @@ extends Node2D
 ## geri-al ve kazanç ekranını yönetir. Çekirdek ↔ sunum köprüsü (TDD §K1).
 ## Not: dökme animasyonu ve ses sonraki adımlarda; şimdilik anında güncelleme.
 
+const POUR_DURATION := 0.16
+
 var _board: Board
 var _history: MoveHistory
 var _board_view: BoardView
 var _win_overlay: WinOverlay
 var _selected_tube: int = -1
+var _animating := false
 
 
 func _ready() -> void:
@@ -65,6 +68,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _on_tap(screen_position: Vector2) -> void:
+	if _animating:
+		return
 	var index := _board_view.tube_index_at(screen_position)
 	if index == -1:
 		_set_selection(-1)  # boşluğa dokunma → iptal
@@ -83,15 +88,49 @@ func _try_move(from_index: int, to_index: int) -> void:
 	var move := _board.build_move(from_index, to_index)
 	if move == null:
 		return  # geçersiz hamle → sessizce yok say (geri bildirim sonra)
+
+	# Görsel başlangıç/bitiş noktalarını hamleyi UYGULAMADAN önce yakala.
+	var count := move.moved_count()
+	var top_card := _board.tube(from_index).top()
+	var from_size := _board.tube(from_index).size()
+	var to_size := _board.tube(to_index).size()
+	var from_view := _board_view.tube_view(from_index)
+	var to_view := _board_view.tube_view(to_index)
+
+	var starts: Array[Vector2] = []
+	var ends: Array[Vector2] = []
+	for k in count:
+		starts.append(from_view.slot_world_center(from_size - 1 - k))
+		ends.append(to_view.slot_world_center(to_size + count - 1 - k))
+
+	# Modeli güncelle, kaynağı hemen tazele (birimler kaynaktan ayrılır).
 	var result := _history.apply(move)
 	_board_view.refresh_tube(from_index)
-	_board_view.refresh_tube(to_index)
+
+	_animating = true
+	var flyers := Node2D.new()
+	add_child(flyers)
+	var tween := create_tween().set_parallel(true)
+	for k in count:
+		var flyer := FlyingUnit.new()
+		flyer.setup(top_card.display_color, top_card.symbol_id)
+		flyer.global_position = starts[k]
+		flyers.add_child(flyer)
+		tween.tween_property(flyer, "global_position", ends[k], POUR_DURATION) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tween.chain().tween_callback(_on_pour_done.bind(flyers, to_index, result))
+
+
+func _on_pour_done(flyers: Node2D, to_index: int, result: MoveResult) -> void:
+	flyers.queue_free()
+	_board_view.refresh_tube(to_index)  # birimler hedefte belirir
+	_animating = false
 	if result.board_solved:
 		_win_overlay.show_win(get_viewport_rect().size)
 
 
 func _on_undo_pressed() -> void:
-	if not _history.can_undo():
+	if _animating or not _history.can_undo():
 		return
 	_history.undo_last()
 	_board_view.refresh_all()

@@ -12,7 +12,7 @@ var _tube_views: Array[TubeView] = []
 func setup(board: Board) -> void:
 	_clear()
 	var count := board.tube_count()
-	var total_width := count * TubeView.TUBE_WIDTH + (count - 1) * TUBE_SPACING
+	var total_width := count * UnitVisual.TUBE_WIDTH + (count - 1) * TUBE_SPACING
 	var x := -total_width / 2.0  # BoardView origin'ine göre ortalı
 
 	for i in count:
@@ -21,7 +21,11 @@ func setup(board: Board) -> void:
 		view.setup(board.tube(i))
 		view.position = Vector2(x, 0)
 		_tube_views.append(view)
-		x += TubeView.TUBE_WIDTH + TUBE_SPACING
+		x += UnitVisual.TUBE_WIDTH + TUBE_SPACING
+
+
+func tube_view(index: int) -> TubeView:
+	return _tube_views[index]
 
 
 ## Verilen global noktanın hangi tüpe denk geldiği; hiçbiri değilse -1 (dokunuş için).

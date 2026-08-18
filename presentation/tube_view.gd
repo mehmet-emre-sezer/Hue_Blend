@@ -2,12 +2,7 @@ class_name TubeView
 extends Node2D
 
 ## Tek tüpün görseli (placeholder — kodla çizilir). Çekirdeği OKUR, mantık içermez.
-## Birimler renk + erişilebilirlik sembolü ile çizilir (TDD §2.3).
-## Origin: sol-üst köşe.
-
-const UNIT_HEIGHT := 62.0
-const TUBE_WIDTH := 92.0
-const PADDING := 6.0
+## Birim çizimi UnitVisual'den gelir (renk + erişilebilirlik sembolü). Origin: sol-üst.
 
 var _tube: Tube
 var _selected := false
@@ -27,7 +22,7 @@ func set_selected(value: bool) -> void:
 
 func tube_size() -> Vector2:
 	var capacity := _tube.capacity() if _tube != null else 0
-	return Vector2(TUBE_WIDTH, capacity * UNIT_HEIGHT)
+	return Vector2(UnitVisual.TUBE_WIDTH, capacity * UnitVisual.UNIT_HEIGHT)
 
 
 ## Yerel koordinatta bir nokta bu tüpün sınırları içinde mi (dokunuş isabeti için).
@@ -35,47 +30,32 @@ func contains_local(local_point: Vector2) -> bool:
 	return Rect2(Vector2.ZERO, tube_size()).has_point(local_point)
 
 
+## Bir slotun (0=dip) global merkez noktası — dökme animasyonu için.
+func slot_world_center(slot_index: int) -> Vector2:
+	var height := _tube.capacity() * UnitVisual.UNIT_HEIGHT
+	var local := Vector2(UnitVisual.TUBE_WIDTH / 2.0, height - (slot_index + 0.5) * UnitVisual.UNIT_HEIGHT)
+	return to_global(local)
+
+
 func _draw() -> void:
 	if _tube == null:
 		return
-	var height := _tube.capacity() * UNIT_HEIGHT
-	var bounds := Rect2(0, 0, TUBE_WIDTH, height)
+	var height := _tube.capacity() * UnitVisual.UNIT_HEIGHT
+	var bounds := Rect2(0, 0, UnitVisual.TUBE_WIDTH, height)
 
 	draw_rect(bounds, Color(1, 1, 1, 0.06))  # tüp zemini
 
 	var cards := _tube.cards_snapshot()  # dip→üst
 	for i in cards.size():
 		var card: ColorCard = cards[i]
-		var y := height - (i + 1) * UNIT_HEIGHT
-		var unit_rect := Rect2(PADDING, y + PADDING, TUBE_WIDTH - 2 * PADDING, UNIT_HEIGHT - 2 * PADDING)
-		draw_rect(unit_rect, card.display_color)
-		_draw_symbol(card.symbol_id, unit_rect.get_center(), 13.0)
+		var y := height - (i + 1) * UnitVisual.UNIT_HEIGHT
+		var rect := Rect2(
+			UnitVisual.PADDING, y + UnitVisual.PADDING,
+			UnitVisual.TUBE_WIDTH - 2 * UnitVisual.PADDING,
+			UnitVisual.UNIT_HEIGHT - 2 * UnitVisual.PADDING
+		)
+		UnitVisual.draw_unit(self, rect, card.display_color, card.symbol_id)
 
 	var outline := Color(1, 0.85, 0.4) if _selected else Color(1, 1, 1, 0.5)
 	var outline_width := 4.0 if _selected else 2.0
 	draw_rect(bounds, outline, false, outline_width)  # dış çizgi (seçiliyse vurgulu)
-
-
-## Renk körü erişilebilirliği: her renge sabit, ayırt edilebilir bir şekil eşlenir.
-func _draw_symbol(symbol_id: StringName, center: Vector2, radius: float) -> void:
-	var ink := Color(0, 0, 0, 0.5)
-	match symbol_id:
-		&"circle":
-			draw_circle(center, radius, ink)
-		&"square":
-			draw_rect(Rect2(center.x - radius, center.y - radius, radius * 2, radius * 2), ink)
-		&"triangle":
-			draw_colored_polygon(PackedVector2Array([
-				center + Vector2(0, -radius),
-				center + Vector2(radius, radius),
-				center + Vector2(-radius, radius),
-			]), ink)
-		&"diamond":
-			draw_colored_polygon(PackedVector2Array([
-				center + Vector2(0, -radius),
-				center + Vector2(radius, 0),
-				center + Vector2(0, radius),
-				center + Vector2(-radius, 0),
-			]), ink)
-		_:
-			draw_circle(center, radius * 0.4, ink)
