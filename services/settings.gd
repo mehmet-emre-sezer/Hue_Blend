@@ -2,12 +2,14 @@ class_name Settings
 extends RefCounted
 
 ## Kullanıcı ayarları (kalıcı, sürümlü). İlerlemeden AYRI dosya (CFG-001 ayrım).
-## Şimdilik tek ayar: reduced_motion (erişilebilirlik — animasyonları kapatır).
+## Ayarlar: reduced_motion (animasyonları kapatır), colorblind_mode (renk körü sembolleri).
+## Renk körü sembolleri VARSAYILAN KAPALI, isteyen açar (erişilebilirlik opsiyonel).
 ## Yol enjekte edilir (test edilebilirlik, global durum yok).
 
 const CURRENT_VERSION := 1
 
 var reduced_motion := false
+var colorblind_mode := false
 
 var _path: String
 
@@ -22,8 +24,17 @@ func set_reduced_motion(value: bool) -> void:
 	_save()
 
 
+func set_colorblind_mode(value: bool) -> void:
+	colorblind_mode = value
+	_save()
+
+
 func _save() -> void:
-	var data := {"version": CURRENT_VERSION, "reduced_motion": reduced_motion}
+	var data := {
+		"version": CURRENT_VERSION,
+		"reduced_motion": reduced_motion,
+		"colorblind_mode": colorblind_mode,
+	}
 	var file := FileAccess.open(_path, FileAccess.WRITE)
 	if file == null:
 		push_error("Ayarlar yazılamadı: %s" % _path)
@@ -46,3 +57,4 @@ func _load() -> void:
 	if int(parsed.get("version", 0)) != CURRENT_VERSION:
 		return
 	reduced_motion = bool(parsed.get("reduced_motion", false))
+	colorblind_mode = bool(parsed.get("colorblind_mode", false))

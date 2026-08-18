@@ -45,12 +45,20 @@ func _build_ui() -> void:
 	undo_button.pressed.connect(_on_undo_pressed)
 	ui.add_child(undo_button)
 
-	# Reduced-motion aç/kapa (placeholder — Faz 3 ayar ekranında ikonlaşacak).
+	# Ayar toggle'ları (placeholder — Faz 3 ayar ekranında ikonlaşacak).
+	var right := get_viewport_rect().size.x - 150
+
 	var motion_toggle := CheckButton.new()
 	motion_toggle.button_pressed = _settings.reduced_motion
-	motion_toggle.position = Vector2(get_viewport_rect().size.x - 150, 40)
+	motion_toggle.position = Vector2(right, 40)
 	motion_toggle.toggled.connect(_on_reduced_motion_toggled)
 	ui.add_child(motion_toggle)
+
+	var colorblind_toggle := CheckButton.new()
+	colorblind_toggle.button_pressed = _settings.colorblind_mode
+	colorblind_toggle.position = Vector2(right, 100)
+	colorblind_toggle.toggled.connect(_on_colorblind_toggled)
+	ui.add_child(colorblind_toggle)
 
 	_win_overlay = WinOverlay.new()
 	_win_overlay.continue_requested.connect(_on_continue)
@@ -59,6 +67,11 @@ func _build_ui() -> void:
 
 func _on_reduced_motion_toggled(pressed: bool) -> void:
 	_settings.set_reduced_motion(pressed)
+
+
+func _on_colorblind_toggled(pressed: bool) -> void:
+	_settings.set_colorblind_mode(pressed)
+	_board_view.set_show_symbols(pressed)
 
 
 func _start_level() -> void:
@@ -74,7 +87,7 @@ func _start_level() -> void:
 
 	_board_view = BoardView.new()
 	add_child(_board_view)
-	_board_view.setup(_board)
+	_board_view.setup(_board, _settings.colorblind_mode)
 	var viewport_size := get_viewport_rect().size
 	_board_view.position = Vector2(viewport_size.x / 2.0, viewport_size.y * 0.45)
 
@@ -168,7 +181,7 @@ func _animate_transfer(
 		var start_point := source_view.slot_world_center(source_size_before - 1 - k)
 		var end_point := dest_view.slot_world_center(dest_size_before + count - 1 - k)
 		var flyer := FlyingUnit.new()
-		flyer.setup(color.display_color, color.symbol_id)
+		flyer.setup(color.display_color, color.symbol_id, _settings.colorblind_mode)
 		flyer.global_position = start_point
 		flyers.add_child(flyer)
 		tween.tween_method(

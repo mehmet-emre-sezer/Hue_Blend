@@ -11,11 +11,17 @@ func after_each() -> void:
 		dir.remove("test_settings.json")
 
 
-func test_varsayilan_kapali() -> void:
-	assert_false(Settings.new(TEST_PATH).reduced_motion, "varsayılan: reduced_motion kapalı")
-
-
-func test_ayar_kalici() -> void:
+func test_varsayilanlar_kapali() -> void:
 	var settings := Settings.new(TEST_PATH)
-	settings.set_reduced_motion(true)
-	assert_true(Settings.new(TEST_PATH).reduced_motion, "ayar diske yazılıp okunmalı")
+	assert_false(settings.reduced_motion, "varsayılan: reduced_motion kapalı")
+	assert_false(settings.colorblind_mode, "varsayılan: colorblind_mode kapalı")
+
+
+func test_reduced_motion_kalici() -> void:
+	Settings.new(TEST_PATH).set_reduced_motion(true)
+	assert_true(Settings.new(TEST_PATH).reduced_motion, "reduced_motion diske yazılıp okunmalı")
+
+
+func test_colorblind_kalici() -> void:
+	Settings.new(TEST_PATH).set_colorblind_mode(true)
+	assert_true(Settings.new(TEST_PATH).colorblind_mode, "colorblind_mode diske yazılıp okunmalı")

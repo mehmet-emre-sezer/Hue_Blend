@@ -14,10 +14,11 @@ static func unit_inner_size() -> Vector2:
 	return Vector2(TUBE_WIDTH - 2 * PADDING, UNIT_HEIGHT - 2 * PADDING)
 
 
-## Verilen canvas üzerine bir birimi çizer: renk dolgusu + erişilebilirlik sembolü.
-static func draw_unit(canvas: CanvasItem, rect: Rect2, color: Color, symbol_id: StringName) -> void:
+## Verilen canvas üzerine bir birimi çizer: renk dolgusu (+ isteğe bağlı renk körü sembolü).
+static func draw_unit(canvas: CanvasItem, rect: Rect2, color: Color, symbol_id: StringName, show_symbol: bool) -> void:
 	canvas.draw_rect(rect, color)
-	_draw_symbol(canvas, symbol_id, rect.get_center(), SYMBOL_RADIUS)
+	if show_symbol:
+		_draw_symbol(canvas, symbol_id, rect.get_center(), SYMBOL_RADIUS)
 
 
 static func _draw_symbol(canvas: CanvasItem, symbol_id: StringName, center: Vector2, radius: float) -> void:

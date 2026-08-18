@@ -7,10 +7,19 @@ extends Node2D
 var _tube: Tube
 var _selected := false
 var _flash := 0.0  # tamamlanma parlaması (0→görünmez)
+var _show_symbols := false  # renk körü sembolleri (ayara bağlı)
 
 
-func setup(tube: Tube) -> void:
+func setup(tube: Tube, show_symbols: bool) -> void:
 	_tube = tube
+	_show_symbols = show_symbols
+	queue_redraw()
+
+
+func set_show_symbols(value: bool) -> void:
+	if _show_symbols == value:
+		return
+	_show_symbols = value
 	queue_redraw()
 
 
@@ -78,7 +87,7 @@ func _draw() -> void:
 			UnitVisual.TUBE_WIDTH - 2 * UnitVisual.PADDING,
 			UnitVisual.UNIT_HEIGHT - 2 * UnitVisual.PADDING
 		)
-		UnitVisual.draw_unit(self, rect, card.display_color, card.symbol_id)
+		UnitVisual.draw_unit(self, rect, card.display_color, card.symbol_id, _show_symbols)
 
 	if _flash > 0.0:
 		draw_rect(bounds, Color(1, 1, 1, _flash))  # tamamlanma parlaması

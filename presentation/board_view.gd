@@ -9,7 +9,7 @@ const TUBE_SPACING := 22.0
 var _tube_views: Array[TubeView] = []
 
 
-func setup(board: Board) -> void:
+func setup(board: Board, show_symbols: bool) -> void:
 	_clear()
 	var count := board.tube_count()
 	var total_width := count * UnitVisual.TUBE_WIDTH + (count - 1) * TUBE_SPACING
@@ -18,7 +18,7 @@ func setup(board: Board) -> void:
 	for i in count:
 		var view := TubeView.new()
 		add_child(view)
-		view.setup(board.tube(i))
+		view.setup(board.tube(i), show_symbols)
 		view.position = Vector2(x, 0)
 		_tube_views.append(view)
 		x += UnitVisual.TUBE_WIDTH + TUBE_SPACING
@@ -26,6 +26,12 @@ func setup(board: Board) -> void:
 
 func tube_view(index: int) -> TubeView:
 	return _tube_views[index]
+
+
+## Renk körü sembollerini tüm tüplerde aç/kapa (ayar değişince).
+func set_show_symbols(value: bool) -> void:
+	for view in _tube_views:
+		view.set_show_symbols(value)
 
 
 ## Verilen global noktanın hangi tüpe denk geldiği; hiçbiri değilse -1 (dokunuş için).
