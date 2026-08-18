@@ -19,6 +19,8 @@ var _board: Board
 var _history: MoveHistory
 var _board_view: BoardView
 var _win_overlay: WinOverlay
+var _recipe_panel: RecipePanel
+var _info_button: Button
 var _selected_tube: int = -1
 var _animating := false
 
@@ -63,9 +65,42 @@ func _build_ui() -> void:
 	colorblind_toggle.toggled.connect(_on_colorblind_toggled)
 	ui.add_child(colorblind_toggle)
 
+	# Tarif/info düğmesi (yalnız karışım seviyelerinde görünür).
+	_info_button = Button.new()
+	_info_button.text = "?"
+	_info_button.add_theme_font_size_override("font_size", 34)
+	_info_button.custom_minimum_size = Vector2(64, 64)
+	_info_button.position = Vector2(get_viewport_rect().size.x / 2.0 - 32, 36)
+	_info_button.pressed.connect(_on_info_pressed)
+	ui.add_child(_info_button)
+
 	_win_overlay = WinOverlay.new()
 	_win_overlay.continue_requested.connect(_on_continue)
 	ui.add_child(_win_overlay)
+
+	_recipe_panel = RecipePanel.new()
+	ui.add_child(_recipe_panel)
+
+
+func _on_info_pressed() -> void:
+	_recipe_panel.show_recipes(get_viewport_rect().size, _recipes_for_level(_levels[_level_index]), _settings.colorblind_mode)
+
+
+## Bu seviyede iki temel rengi de bulunan karışım tariflerini toplar.
+func _recipes_for_level(level: LevelData) -> Array:
+	var present := {}
+	for tube_ids in level.tubes:
+		for id_str in tube_ids:
+			present[StringName(id_str)] = true
+	var out: Array = []
+	for recipe in _mix_rules.recipes():
+		if present.has(recipe.a) and present.has(recipe.b):
+			out.append({
+				"a": _colors.get_card(recipe.a),
+				"b": _colors.get_card(recipe.b),
+				"result": recipe.result,
+			})
+	return out
 
 
 func _on_reduced_motion_toggled(pressed: bool) -> void:
@@ -97,6 +132,8 @@ func _start_level() -> void:
 
 	_set_selection(-1)
 	_win_overlay.hide()
+	_recipe_panel.hide()
+	_info_button.visible = level.uses_mixing  # tarif düğmesi yalnız karışım seviyelerinde
 
 
 func _on_continue() -> void:

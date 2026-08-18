@@ -76,3 +76,13 @@ func test_uyumsuz_renk_null() -> void:
 	# tablo yalnız blue+yellow; red+blue tanımsız → hamle geçersiz
 	var board := Board.new([_tube(4, [&"red"]), _tube(4, [&"blue"])], _rules())
 	assert_null(board.build_move(0, 1), "tanımsız karışım hamlesi geçersiz")
+
+
+func test_recipes_eklenenleri_dondurur() -> void:
+	var rules := _rules()  # blue+yellow=green
+	rules.add(&"red", &"blue", _card(&"purple"))
+	var recipes := rules.recipes()
+	assert_eq(recipes.size(), 2, "eklenen tarif sayısı")
+	assert_eq(recipes[0].a, &"blue")
+	assert_eq(recipes[0].b, &"yellow")
+	assert_eq(recipes[0].result.id, &"green")
