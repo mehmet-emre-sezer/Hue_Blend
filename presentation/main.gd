@@ -113,7 +113,7 @@ func _try_move(from_index: int, to_index: int) -> void:
 	var dest_size := _board.tube(to_index).size()
 
 	var result := _history.apply(move)
-	_animate_transfer(from_index, to_index, source_size, dest_size, count, color, result.board_solved)
+	_animate_transfer(from_index, to_index, source_size, dest_size, count, color, result.board_solved, result.dest_tube_solved)
 
 
 func _on_undo_pressed() -> void:
@@ -128,7 +128,7 @@ func _on_undo_pressed() -> void:
 	var source_size := _board.tube(move.to_index()).size()
 	var dest_size := _board.tube(move.from_index()).size()
 	_history.undo_last()
-	_animate_transfer(move.to_index(), move.from_index(), source_size, dest_size, count, color, false)
+	_animate_transfer(move.to_index(), move.from_index(), source_size, dest_size, count, color, false, false)
 
 
 ## Birimleri kaynak tüpün üstünden hedefe kavis çizerek akıtır (dökülme hissi).
@@ -136,7 +136,7 @@ func _on_undo_pressed() -> void:
 func _animate_transfer(
 	source_index: int, dest_index: int,
 	source_size_before: int, dest_size_before: int,
-	count: int, color: ColorCard, won: bool
+	count: int, color: ColorCard, won: bool, dest_solved: bool
 ) -> void:
 	var source_view := _board_view.tube_view(source_index)
 	var dest_view := _board_view.tube_view(dest_index)
@@ -156,7 +156,7 @@ func _animate_transfer(
 		tween.tween_method(
 			_arc_position.bind(flyer, start_point, end_point), 0.0, 1.0, POUR_DURATION
 		).set_delay(k * POUR_STAGGER)
-	tween.chain().tween_callback(_on_transfer_done.bind(flyers, dest_index, won))
+	tween.chain().tween_callback(_on_transfer_done.bind(flyers, dest_index, won, dest_solved))
 
 
 ## t=0→1 boyunca doğrusal ilerleme + ortada zirve yapan dikey kavis (ağızdan dökülme).
@@ -165,10 +165,12 @@ func _arc_position(t: float, flyer: FlyingUnit, start_point: Vector2, end_point:
 	flyer.global_position = start_point.lerp(end_point, t) - Vector2(0, lift)
 
 
-func _on_transfer_done(flyers: Node2D, dest_index: int, won: bool) -> void:
+func _on_transfer_done(flyers: Node2D, dest_index: int, won: bool, dest_solved: bool) -> void:
 	flyers.queue_free()
 	_board_view.refresh_tube(dest_index)  # birimler hedefte belirir
 	_animating = false
+	if dest_solved:
+		_board_view.tube_view(dest_index).play_complete_pulse()  # küçük zafer
 	if won:
 		_win_overlay.show_win(get_viewport_rect().size)
 

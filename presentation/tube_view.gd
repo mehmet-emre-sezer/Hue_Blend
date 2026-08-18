@@ -6,6 +6,7 @@ extends Node2D
 
 var _tube: Tube
 var _selected := false
+var _flash := 0.0  # tamamlanma parlaması (0→görünmez)
 
 
 func setup(tube: Tube) -> void:
@@ -17,6 +18,18 @@ func set_selected(value: bool) -> void:
 	if _selected == value:
 		return
 	_selected = value
+	queue_redraw()
+
+
+## Tüp tamamlandığında kısa bir parlama (küçük zafer geri bildirimi).
+func play_complete_pulse() -> void:
+	_flash = 0.55
+	queue_redraw()
+	create_tween().tween_method(_set_flash, _flash, 0.0, 0.45).set_ease(Tween.EASE_OUT)
+
+
+func _set_flash(value: float) -> void:
+	_flash = value
 	queue_redraw()
 
 
@@ -55,6 +68,9 @@ func _draw() -> void:
 			UnitVisual.UNIT_HEIGHT - 2 * UnitVisual.PADDING
 		)
 		UnitVisual.draw_unit(self, rect, card.display_color, card.symbol_id)
+
+	if _flash > 0.0:
+		draw_rect(bounds, Color(1, 1, 1, _flash))  # tamamlanma parlaması
 
 	var outline := Color(1, 0.85, 0.4) if _selected else Color(1, 1, 1, 0.5)
 	var outline_width := 4.0 if _selected else 2.0

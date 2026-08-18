@@ -25,6 +25,10 @@ static func levels() -> Array[LevelData]:
 	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 4, 2, 404))
 	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 5, 2, 505))
 	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 4, 3, 606))
+	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 5, 2, 707))
+	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 5, 3, 808))
+	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 6, 2, 909))
+	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 6, 3, 1010))
 	return out
 
 
