@@ -8,6 +8,7 @@ const POUR_STAGGER := 0.05  # birimler sıra sıra aksın
 const ARC_HEIGHT := 70.0    # ağızdan dökülme kavisi yüksekliği
 
 var _colors: ColorRegistry
+var _mix_rules: MixRules
 var _levels: Array[LevelData]
 var _level_index: int = 0
 var _save: SaveService
@@ -23,6 +24,7 @@ var _animating := false
 
 func _ready() -> void:
 	_colors = GameContent.colors()
+	_mix_rules = GameContent.mix_rules(_colors)
 	_levels = GameContent.levels()
 	_save = SaveService.new()
 	_settings = Settings.new()
@@ -79,10 +81,11 @@ func _start_level() -> void:
 		_board_view.queue_free()
 
 	var level := _levels[_level_index]
-	var errors := LevelValidator.new().validate(level, _colors)
+	var rules: MixRules = _mix_rules if level.uses_mixing else null
+	var errors := LevelValidator.new().validate(level, _colors, rules)
 	assert(errors.is_empty(), "seviye geçersiz: %s" % ", ".join(errors))
 
-	_board = LevelLoader.new().load_board(level, _colors)
+	_board = LevelLoader.new().load_board(level, _colors, rules)
 	_history = MoveHistory.new(_board)
 
 	_board_view = BoardView.new()
@@ -104,10 +107,25 @@ func _on_continue() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# DEBUG: N/P ile seviye atla (yayından önce kaldırılacak — X-028).
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_N:
+			_debug_jump_level(1)
+			return
+		if event.keycode == KEY_P:
+			_debug_jump_level(-1)
+			return
 	if event is InputEventScreenTouch and event.pressed:
 		_on_tap(event.position)
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_on_tap(event.position)
+
+
+func _debug_jump_level(delta: int) -> void:
+	if _animating:
+		return
+	_level_index = clampi(_level_index + delta, 0, _levels.size() - 1)
+	_start_level()
 
 
 func _on_tap(screen_position: Vector2) -> void:
@@ -140,7 +158,8 @@ func _try_move(from_index: int, to_index: int) -> void:
 	var dest_size := _board.tube(to_index).size()
 
 	var result := _history.apply(move)
-	_animate_transfer(from_index, to_index, source_size, dest_size, count, color, result.board_solved, result.dest_tube_solved)
+	var flash := result.dest_tube_solved or result.mixed  # tamamlanma ya da karışım → parla
+	_animate_transfer(from_index, to_index, source_size, dest_size, count, color, result.board_solved, flash)
 
 
 func _on_undo_pressed() -> void:
@@ -163,14 +182,14 @@ func _on_undo_pressed() -> void:
 func _animate_transfer(
 	source_index: int, dest_index: int,
 	source_size_before: int, dest_size_before: int,
-	count: int, color: ColorCard, won: bool, dest_solved: bool
+	count: int, color: ColorCard, won: bool, should_flash: bool
 ) -> void:
 	var source_view := _board_view.tube_view(source_index)
 	var dest_view := _board_view.tube_view(dest_index)
 	_board_view.refresh_tube(source_index)  # birimler kaynaktan ayrılır
 
 	if _settings.reduced_motion:
-		_finish_transfer(dest_index, won, dest_solved)  # animasyonsuz anında güncelle
+		_finish_transfer(dest_index, won, should_flash)  # animasyonsuz anında güncelle
 		return
 
 	_animating = true
@@ -187,7 +206,7 @@ func _animate_transfer(
 		tween.tween_method(
 			_arc_position.bind(flyer, start_point, end_point), 0.0, 1.0, POUR_DURATION
 		).set_delay(k * POUR_STAGGER)
-	tween.chain().tween_callback(_on_transfer_done.bind(flyers, dest_index, won, dest_solved))
+	tween.chain().tween_callback(_on_transfer_done.bind(flyers, dest_index, won, should_flash))
 
 
 ## t=0→1 boyunca doğrusal ilerleme + ortada zirve yapan dikey kavis (ağızdan dökülme).
@@ -196,17 +215,17 @@ func _arc_position(t: float, flyer: FlyingUnit, start_point: Vector2, end_point:
 	flyer.global_position = start_point.lerp(end_point, t) - Vector2(0, lift)
 
 
-func _on_transfer_done(flyers: Node2D, dest_index: int, won: bool, dest_solved: bool) -> void:
+func _on_transfer_done(flyers: Node2D, dest_index: int, won: bool, should_flash: bool) -> void:
 	flyers.queue_free()
 	_animating = false
-	_finish_transfer(dest_index, won, dest_solved)
+	_finish_transfer(dest_index, won, should_flash)
 
 
 ## Hamlenin görsel sonucu: hedefi tazele, tamamlandıysa parla, kazanıldıysa ekranı göster.
 ## Hem animasyonlu hem reduced-motion yolu buraya varır.
-func _finish_transfer(dest_index: int, won: bool, dest_solved: bool) -> void:
+func _finish_transfer(dest_index: int, won: bool, should_flash: bool) -> void:
 	_board_view.refresh_tube(dest_index)  # birimler hedefte belirir
-	if dest_solved and not _settings.reduced_motion:
+	if should_flash and not _settings.reduced_motion:
 		_board_view.tube_view(dest_index).play_complete_pulse()  # küçük zafer
 	if won:
 		_win_overlay.show_win(get_viewport_rect().size)

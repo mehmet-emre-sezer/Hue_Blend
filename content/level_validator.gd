@@ -7,7 +7,9 @@ extends RefCounted
 ## Faz 1: yapısal (gerekli ama yeterli olmayan) kontroller. Tam çözücü (BFS) Faz 3'e
 ## ertelendi (TDD §K3) — el-yapımı seviyeler için yapısal doğrulama yeterli.
 
-func validate(level: LevelData, colors: ColorRegistry) -> PackedStringArray:
+## mix_rules verilirse karışım seviyesidir: renkler birleştiğinden "sayı kapasiteye
+## bölünmeli" kuralı UYGULANMAZ; doğruluğu çözücü (üretimde) garanti eder.
+func validate(level: LevelData, colors: ColorRegistry, mix_rules: MixRules = null) -> PackedStringArray:
 	var errors := PackedStringArray()
 
 	if level.capacity <= 0:
@@ -27,8 +29,8 @@ func validate(level: LevelData, colors: ColorRegistry) -> PackedStringArray:
 			else:
 				color_counts[id] = int(color_counts.get(id, 0)) + 1
 
-	# Her rengin toplamı kapasiteye tam bölünmeli (tek-renk tüp doldurabilmenin ön koşulu).
-	if level.capacity > 0:
+	# Her rengin toplamı kapasiteye tam bölünmeli — YALNIZCA karışımsız seviyelerde geçerli.
+	if mix_rules == null and level.capacity > 0:
 		for id in color_counts:
 			if color_counts[id] % level.capacity != 0:
 				errors.append("renk '%s' toplamı (%d) kapasiteye (%d) bölünmüyor" % [id, color_counts[id], level.capacity])

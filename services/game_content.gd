@@ -8,11 +8,24 @@ extends RefCounted
 
 static func colors() -> ColorRegistry:
 	var registry := ColorRegistry.new()
+	# Temel renkler
 	registry.register(_card(&"red", Color("e0645a"), &"circle"))
 	registry.register(_card(&"blue", Color("5a7ae0"), &"square"))
-	registry.register(_card(&"green", Color("5ac06a"), &"triangle"))
 	registry.register(_card(&"yellow", Color("e0c24a"), &"diamond"))
+	# İkincil renkler (karışımla elde edilir)
+	registry.register(_card(&"green", Color("5ac06a"), &"triangle"))
+	registry.register(_card(&"purple", Color("9b5ac0"), &"pentagon"))
+	registry.register(_card(&"orange", Color("e0925a"), &"hexagon"))
 	return registry
+
+
+## Temel + temel → ikincil karışım tablosu (Faz 2 Aşama 1).
+static func mix_rules(registry: ColorRegistry) -> MixRules:
+	var rules := MixRules.new()
+	rules.add(&"blue", &"yellow", registry.get_card(&"green"))
+	rules.add(&"red", &"blue", registry.get_card(&"purple"))
+	rules.add(&"red", &"yellow", registry.get_card(&"orange"))
+	return rules
 
 
 ## Artan zorlukta seviye listesi (renk sayısı ve kapasite arttıkça zorlaşır).
@@ -29,6 +42,11 @@ static func levels() -> Array[LevelData]:
 	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 5, 3, 808))
 	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 6, 2, 909))
 	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 6, 3, 1010))
+	# Faz 2: karışımlı seviyeler (her biri bir ikincil rengi öğretir)
+	var rules := mix_rules(registry)
+	out.append(_generate_mixing(registry, rules, ["blue", "blue", "yellow", "yellow"], 4, 2, 2001))
+	out.append(_generate_mixing(registry, rules, ["red", "red", "blue", "blue"], 4, 2, 2002))
+	out.append(_generate_mixing(registry, rules, ["red", "red", "yellow", "yellow"], 4, 2, 2003))
 	return out
 
 
@@ -82,6 +100,54 @@ static func _random_deal(color_ids: Array, capacity: int, empty_tubes: int, seed
 		for k in capacity:
 			tube.append(bag[index])
 			index += 1
+		tube_arrays.append(tube)
+	for e in empty_tubes:
+		tube_arrays.append(PackedStringArray())
+	level.tubes = tube_arrays
+	return level
+
+
+## Karışım seviyesi: verilen temel-renk torbasını dağıtır; KARIŞIMLA çözülebilir AMA
+## karışımsız çözülemez olana kadar seed'i artırır (yani gerçekten karıştırma gerektirir).
+static func _generate_mixing(
+	registry: ColorRegistry, rules: MixRules, bag_ids: Array,
+	capacity: int, empty_tubes: int, seed_value: int
+) -> LevelData:
+	var solver := LevelSolver.new()
+	var attempt := 0
+	while attempt < 800:
+		var level := _deal_mixing(bag_ids, capacity, empty_tubes, seed_value + attempt)
+		if solver.is_solvable(level, registry, rules) and not solver.is_solvable(level, registry, null):
+			level.uses_mixing = true
+			return level
+		attempt += 1
+	push_error("Karışımlı seviye üretilemedi (seed %d)" % seed_value)
+	var fallback := _deal_mixing(bag_ids, capacity, empty_tubes, seed_value)
+	fallback.uses_mixing = true
+	return fallback
+
+
+## Torbayı seed'li karıştırıp sırayla tüplere (kapasiteye kadar) doldurur + boş tüpler ekler.
+static func _deal_mixing(bag_ids: Array, capacity: int, empty_tubes: int, seed_value: int) -> LevelData:
+	var bag := bag_ids.duplicate()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	for i in range(bag.size() - 1, 0, -1):
+		var j := rng.randi_range(0, i)
+		var temp = bag[i]
+		bag[i] = bag[j]
+		bag[j] = temp
+
+	var level := LevelData.new()
+	level.capacity = capacity
+	var tube_arrays: Array[PackedStringArray] = []
+	var index := 0
+	while index < bag.size():
+		var tube := PackedStringArray()
+		for k in capacity:
+			if index < bag.size():
+				tube.append(String(bag[index]))
+				index += 1
 		tube_arrays.append(tube)
 	for e in empty_tubes:
 		tube_arrays.append(PackedStringArray())

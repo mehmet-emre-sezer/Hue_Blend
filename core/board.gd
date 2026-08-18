@@ -35,11 +35,12 @@ func build_move(from_idx: int, to_idx: int) -> MoveCommand:
 	var outcome := Pour.compute(source.cards_snapshot(), dest.cards_snapshot(), dest.capacity(), _mix_rules)
 	if outcome == null:
 		return null
+	var mixed := not outcome.poured_color.same_as(outcome.result_color)
 	return MoveCommand.new(
 		from_idx, to_idx,
 		source.cards_snapshot(), dest.cards_snapshot(),
 		outcome.source_after, outcome.dest_after,
-		outcome.moved_count, outcome.poured_color
+		outcome.moved_count, outcome.poured_color, mixed
 	)
 
 

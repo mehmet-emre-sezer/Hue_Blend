@@ -14,13 +14,14 @@ var _source_after: Array
 var _dest_after: Array
 var _moved_count: int
 var _poured_color: ColorCard
+var _mixed: bool
 
 
 func _init(
 	from_idx: int, to_idx: int,
 	source_before: Array, dest_before: Array,
 	source_after: Array, dest_after: Array,
-	moved_count: int, poured_color: ColorCard
+	moved_count: int, poured_color: ColorCard, mixed: bool
 ) -> void:
 	assert(moved_count > 0, "hamle en az 1 kart taşımalı")
 	_from_idx = from_idx
@@ -31,6 +32,7 @@ func _init(
 	_dest_after = dest_after
 	_moved_count = moved_count
 	_poured_color = poured_color
+	_mixed = mixed
 
 
 func apply(board: Board) -> MoveResult:
@@ -39,7 +41,7 @@ func apply(board: Board) -> MoveResult:
 	var dest_solved := board.tube(_to_idx).is_solved()
 	return MoveResult.new(
 		_from_idx, _to_idx, _moved_count, _poured_color,
-		dest_solved, board.is_solved()
+		dest_solved, board.is_solved(), _mixed
 	)
 
 

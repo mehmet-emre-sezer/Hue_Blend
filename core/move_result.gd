@@ -11,6 +11,7 @@ var moved_count: int
 var color: ColorCard
 var dest_tube_solved: bool
 var board_solved: bool
+var mixed: bool  # bu hamlede karışım oldu mu (görsel geri bildirim için)
 
 
 func _init(
@@ -19,7 +20,8 @@ func _init(
 	moved_count: int,
 	color: ColorCard,
 	dest_tube_solved: bool,
-	board_solved: bool
+	board_solved: bool,
+	mixed: bool
 ) -> void:
 	self.from_idx = from_idx
 	self.to_idx = to_idx
@@ -27,3 +29,4 @@ func _init(
 	self.color = color
 	self.dest_tube_solved = dest_tube_solved
 	self.board_solved = board_solved
+	self.mixed = mixed

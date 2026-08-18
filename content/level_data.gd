@@ -7,6 +7,9 @@ extends Resource
 ## Her tüpün kapasitesi (kart sayısı).
 @export var capacity: int = 4
 
+## Bu seviyede renk karıştırma açık mı (Board'a mix_rules bağlanır, validator gevşer).
+@export var uses_mixing: bool = false
+
 ## Her tüp için başlangıç renk id'leri, dip→üst sırada. Boş dizi = boş tüp.
 ## Not: Godot Resource export kısıtı nedeniyle iç eleman PackedStringArray'dir
 ## (Clean §14 açık tip tercihinden sapma); tip güvenliği yükleme sınırında

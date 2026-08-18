@@ -41,5 +41,17 @@ static func _draw_symbol(canvas: CanvasItem, symbol_id: StringName, center: Vect
 				center + Vector2(0, radius),
 				center + Vector2(-radius, 0),
 			]), ink)
+		&"pentagon":
+			_draw_ngon(canvas, center, radius, 5, ink)
+		&"hexagon":
+			_draw_ngon(canvas, center, radius, 6, ink)
 		_:
 			canvas.draw_circle(center, radius * 0.4, ink)
+
+
+static func _draw_ngon(canvas: CanvasItem, center: Vector2, radius: float, sides: int, ink: Color) -> void:
+	var points := PackedVector2Array()
+	for k in sides:
+		var angle := -PI / 2.0 + k * TAU / sides
+		points.append(center + Vector2(cos(angle), sin(angle)) * radius)
+	canvas.draw_colored_polygon(points, ink)
