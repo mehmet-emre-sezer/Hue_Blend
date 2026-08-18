@@ -1,0 +1,17 @@
+# Godot 4 .gitignore
+
+# Godot otomatik import cache ve editör verisi
+.godot/
+
+# Export edilmiş binary'ler
+/build/
+*.apk
+*.aab
+*.ipa
+export_presets.cfg
+
+# macOS
+.DS_Store
+
+# Yerel proje takip dokümanları — ASLA commit/push edilmez, her zaman localde kalır
+/docs/
