@@ -6,6 +6,7 @@ extends Node2D
 const POUR_DURATION := 0.20
 const POUR_STAGGER := 0.05  # birimler sıra sıra aksın
 const ARC_HEIGHT := 70.0    # ağızdan dökülme kavisi yüksekliği
+const MIX_HOLD := 0.32      # karışımdan önce "dökülen renk hedef üstünde" görünür kalsın
 
 var _colors: ColorRegistry
 var _mix_rules: MixRules
@@ -159,7 +160,7 @@ func _try_move(from_index: int, to_index: int) -> void:
 
 	var result := _history.apply(move)
 	var flash := result.dest_tube_solved or result.mixed  # tamamlanma ya da karışım → parla
-	_animate_transfer(from_index, to_index, source_size, dest_size, count, color, result.board_solved, flash)
+	_animate_transfer(from_index, to_index, source_size, dest_size, count, color, result.board_solved, flash, result.mixed)
 
 
 func _on_undo_pressed() -> void:
@@ -174,7 +175,7 @@ func _on_undo_pressed() -> void:
 	var source_size := _board.tube(move.to_index()).size()
 	var dest_size := _board.tube(move.from_index()).size()
 	_history.undo_last()
-	_animate_transfer(move.to_index(), move.from_index(), source_size, dest_size, count, color, false, false)
+	_animate_transfer(move.to_index(), move.from_index(), source_size, dest_size, count, color, false, false, false)
 
 
 ## Birimleri kaynak tüpün üstünden hedefe kavis çizerek akıtır (dökülme hissi).
@@ -182,7 +183,7 @@ func _on_undo_pressed() -> void:
 func _animate_transfer(
 	source_index: int, dest_index: int,
 	source_size_before: int, dest_size_before: int,
-	count: int, color: ColorCard, won: bool, should_flash: bool
+	count: int, color: ColorCard, won: bool, should_flash: bool, mixed: bool
 ) -> void:
 	var source_view := _board_view.tube_view(source_index)
 	var dest_view := _board_view.tube_view(dest_index)
@@ -206,7 +207,11 @@ func _animate_transfer(
 		tween.tween_method(
 			_arc_position.bind(flyer, start_point, end_point), 0.0, 1.0, POUR_DURATION
 		).set_delay(k * POUR_STAGGER)
-	tween.chain().tween_callback(_on_transfer_done.bind(flyers, dest_index, won, should_flash))
+	tween.chain()
+	if mixed:
+		# Dökülen renk hedefin üstünde bir an dursun → oyuncu "ne ile karıştığını" görsün.
+		tween.tween_interval(MIX_HOLD)
+	tween.tween_callback(_on_transfer_done.bind(flyers, dest_index, won, should_flash))
 
 
 ## t=0→1 boyunca doğrusal ilerleme + ortada zirve yapan dikey kavis (ağızdan dökülme).
