@@ -51,7 +51,7 @@ static func _generate(
 	while attempt < 500:
 		var level := _random_deal(color_ids, capacity, empty_tubes, seed_value + attempt)
 		var board := loader.load_board(level, registry)
-		if not board.is_solved() and solver.is_solvable(level):
+		if not board.is_solved() and solver.is_solvable(level, registry):
 			return level
 		attempt += 1
 	push_error("Çözülebilir seviye üretilemedi (seed %d)" % seed_value)

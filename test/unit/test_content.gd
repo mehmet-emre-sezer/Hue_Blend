@@ -16,4 +16,4 @@ func test_uretilen_seviyeler_gecerli_ve_cozulmemis() -> void:
 		assert_eq(errors.size(), 0, "seviye %d geçerli olmalı: %s" % [i, ", ".join(errors)])
 		var board := loader.load_board(levels[i], colors)
 		assert_false(board.is_solved(), "seviye %d başlangıçta çözülü olmamalı" % i)
-		assert_true(solver.is_solvable(levels[i]), "seviye %d çözülebilir olmalı" % i)
+		assert_true(solver.is_solvable(levels[i], colors), "seviye %d çözülebilir olmalı" % i)

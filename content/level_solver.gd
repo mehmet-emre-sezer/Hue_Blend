@@ -1,16 +1,16 @@
 class_name LevelSolver
 extends RefCounted
 
-## Bir seviyenin çözülebilir olup olmadığını arar (DFS + ziyaret edilmiş küme, düğüm sınırlı).
-## Amaç: üretilen/tasarlanan seviyelerin gerçekten çözülebilir olduğunu garanti (PIPE-009, K3).
-## Saf mantık, çekirdek kurallarını yeniden uygular (durum = tüp içerikleri dizisi).
+## Bir seviyenin çözülebilir olup olmadığını arar (DFS + ziyaret kümesi, düğüm sınırlı).
+## Successor'lar oyunun kendi kuralını (Pour.compute) kullanır → çözücü ile oyun asla sapmaz.
+## Karışım-farkında: mix_rules verilirse karışım hamlelerini de dener (null → saf sıralama).
 
 const NODE_LIMIT := 300000
 
 
-func is_solvable(level: LevelData) -> bool:
+func is_solvable(level: LevelData, colors: ColorRegistry, mix_rules: MixRules = null) -> bool:
 	var capacity := level.capacity
-	var start := _encode(level)
+	var start := _encode(level, colors)
 	var visited := {_key(start): true}
 	var stack: Array = [start]
 	var nodes := 0
@@ -22,7 +22,7 @@ func is_solvable(level: LevelData) -> bool:
 		var state: Array = stack.pop_back()
 		if _is_solved(state, capacity):
 			return true
-		for successor in _successors(state, capacity):
+		for successor in _successors(state, capacity, mix_rules):
 			var key := _key(successor)
 			if not visited.has(key):
 				visited[key] = true
@@ -30,12 +30,12 @@ func is_solvable(level: LevelData) -> bool:
 	return false
 
 
-func _encode(level: LevelData) -> Array:
+func _encode(level: LevelData, colors: ColorRegistry) -> Array:
 	var out: Array = []
 	for tube_ids in level.tubes:
 		var tube: Array = []
 		for id in tube_ids:
-			tube.append(id)
+			tube.append(colors.get_card(StringName(id)))
 		out.append(tube)
 	return out
 
@@ -46,54 +46,36 @@ func _is_solved(state: Array, capacity: int) -> bool:
 			continue
 		if tube.size() != capacity:
 			return false
-		for unit in tube:
-			if unit != tube[0]:
+		var first: ColorCard = tube[0]
+		for card in tube:
+			if not card.same_as(first):
 				return false
 	return true
 
 
-func _successors(state: Array, capacity: int) -> Array:
+func _successors(state: Array, capacity: int, mix_rules: MixRules) -> Array:
 	var out: Array = []
 	var count := state.size()
 	for i in count:
-		var source: Array = state[i]
-		if source.is_empty():
-			continue
-		var color = source[-1]
-		var run := 0
-		for x in range(source.size() - 1, -1, -1):
-			if source[x] == color:
-				run += 1
-			else:
-				break
 		for j in count:
 			if i == j:
 				continue
-			var dest: Array = state[j]
-			if dest.size() == capacity:
-				continue
-			if not (dest.is_empty() or dest[-1] == color):
-				continue
-			var move_count: int = min(run, capacity - dest.size())
-			if move_count <= 0:
-				continue
-			out.append(_apply(state, i, j, move_count))
+			var outcome := Pour.compute(state[i], state[j], capacity, mix_rules)
+			if outcome != null:
+				var next := state.duplicate()  # tüp listesi sığ kopya (iç diziler değişmez)
+				next[i] = outcome.source_after
+				next[j] = outcome.dest_after
+				out.append(next)
 	return out
 
 
-func _apply(state: Array, from_index: int, to_index: int, move_count: int) -> Array:
-	var next: Array = []
-	for tube in state:
-		next.append(tube.duplicate())
-	for c in move_count:
-		next[to_index].append(next[from_index].pop_back())
-	return next
-
-
-## Tüp sırası önemsiz → tüpleri sıralayıp birleştirerek kanonik anahtar (ziyaret dedup).
+## Tüp sırası önemsiz → tüpleri renk-id'leriyle sıralayıp birleştirerek kanonik anahtar.
 func _key(state: Array) -> String:
 	var parts: Array = []
 	for tube in state:
-		parts.append(",".join(tube))
+		var ids: Array = []
+		for card in tube:
+			ids.append(String(card.id))
+		parts.append(",".join(ids))
 	parts.sort()
 	return "|".join(parts)
