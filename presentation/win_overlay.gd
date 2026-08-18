@@ -4,7 +4,7 @@ extends Control
 ## Kazanç ekranı (placeholder, dilden bağımsız — metin yok, kodla çizilir).
 ## Görününce ekranı karartır + onay işareti çizer; dokununca yeniden başlatma ister.
 
-signal restart_requested
+signal continue_requested
 
 
 func _ready() -> void:
@@ -23,7 +23,7 @@ func _gui_input(event: InputEvent) -> void:
 	var tapped: bool = (event is InputEventScreenTouch and event.pressed) \
 		or (event is InputEventMouseButton and event.pressed)
 	if tapped:
-		restart_requested.emit()
+		continue_requested.emit()
 
 
 func _draw() -> void:

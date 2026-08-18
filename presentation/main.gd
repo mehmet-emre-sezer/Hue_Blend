@@ -1,12 +1,16 @@
 extends Node2D
 
-## Faz 1 oynanış denetleyicisi: seviyeyi kurar, tahtayı gösterir, dokunuşu hamleye çevirir,
-## geri-al ve kazanç ekranını yönetir. Çekirdek ↔ sunum köprüsü (TDD §K1).
-## Not: dökme animasyonu ve ses sonraki adımlarda; şimdilik anında güncelleme.
+## Faz 1 oynanış denetleyicisi: içerik+ilerlemeyi kurar, tahtayı gösterir, dokunuşu hamleye
+## çevirir, geri-al ve kazanç/ilerleme akışını yönetir. Çekirdek ↔ sunum köprüsü (TDD §K1).
 
 const POUR_DURATION := 0.20
 const POUR_STAGGER := 0.05  # birimler sıra sıra aksın
 const ARC_HEIGHT := 70.0    # ağızdan dökülme kavisi yüksekliği
+
+var _colors: ColorRegistry
+var _levels: Array[LevelData]
+var _level_index: int = 0
+var _save: SaveService
 
 var _board: Board
 var _history: MoveHistory
@@ -17,6 +21,10 @@ var _animating := false
 
 
 func _ready() -> void:
+	_colors = GameContent.colors()
+	_levels = GameContent.levels()
+	_save = SaveService.new()
+	_level_index = clampi(_save.load_level_index(), 0, _levels.size() - 1)
 	_build_ui()
 	_start_level()
 
@@ -36,7 +44,7 @@ func _build_ui() -> void:
 	ui.add_child(undo_button)
 
 	_win_overlay = WinOverlay.new()
-	_win_overlay.restart_requested.connect(_start_level)
+	_win_overlay.continue_requested.connect(_on_continue)
 	ui.add_child(_win_overlay)
 
 
@@ -44,12 +52,11 @@ func _start_level() -> void:
 	if _board_view != null:
 		_board_view.queue_free()
 
-	var colors := GameContent.colors()
-	var level := GameContent.level_one()
-	var errors := LevelValidator.new().validate(level, colors)
+	var level := _levels[_level_index]
+	var errors := LevelValidator.new().validate(level, _colors)
 	assert(errors.is_empty(), "seviye geçersiz: %s" % ", ".join(errors))
 
-	_board = LevelLoader.new().load_board(level, colors)
+	_board = LevelLoader.new().load_board(level, _colors)
 	_history = MoveHistory.new(_board)
 
 	_board_view = BoardView.new()
@@ -60,6 +67,14 @@ func _start_level() -> void:
 
 	_set_selection(-1)
 	_win_overlay.hide()
+
+
+func _on_continue() -> void:
+	# Kazançtan sonra bir sonraki seviyeye geç (son seviyedeyse tekrar oyna) ve kaydet.
+	if _level_index < _levels.size() - 1:
+		_level_index += 1
+		_save.save_progress(_level_index)
+	_start_level()
 
 
 func _unhandled_input(event: InputEvent) -> void:
