@@ -8,7 +8,7 @@ config_version=5
 config/name="Karışım"
 config/description="Cozy renk-ayırma bulmacası (renk karıştırma mekaniğiyle)."
 config/features=PackedStringArray("4.7", "GL Compatibility")
-run/main_scene=""
+run/main_scene="res://Main.tscn"
 
 [display]
 
