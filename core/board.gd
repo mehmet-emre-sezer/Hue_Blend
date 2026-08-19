@@ -40,7 +40,7 @@ func build_move(from_idx: int, to_idx: int) -> MoveCommand:
 		from_idx, to_idx,
 		source.cards_snapshot(), dest.cards_snapshot(),
 		outcome.source_after, outcome.dest_after,
-		outcome.moved_count, outcome.poured_color, mixed
+		outcome.moved_count, outcome.poured_color, mixed, outcome.result_color
 	)
 
 

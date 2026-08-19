@@ -22,6 +22,16 @@ static func colors() -> ColorRegistry:
 	return registry
 
 
+## Temel renkler (her zaman bilinir — başlangıç paleti).
+static func primary_ids() -> Array:
+	return [&"red", &"blue", &"yellow"]
+
+
+## Karışımla KEŞFEDİLEBİLİR renkler (koleksiyon ekranı sırası).
+static func discoverable_ids() -> Array:
+	return [&"green", &"purple", &"orange", &"teal", &"lime"]
+
+
 ## TAM karışım kataloğu: temel→ikincil ve ikincil+temel→üçüncül (renk ağacı).
 ## Seviyeler bunun ALT KÜMESİNİ kullanır (seviye-bazlı sınırlama, main._rules_for_level).
 static func mix_rules(registry: ColorRegistry) -> MixRules:

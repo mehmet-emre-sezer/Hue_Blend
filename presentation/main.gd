@@ -15,6 +15,7 @@ var _levels: Array[LevelData]
 var _level_index: int = 0
 var _save: SaveService
 var _settings: Settings
+var _collection: Collection
 
 var _board: Board
 var _history: MoveHistory
@@ -22,6 +23,10 @@ var _board_view: BoardView
 var _win_overlay: WinOverlay
 var _recipe_panel: RecipePanel
 var _info_button: Button
+var _collection_panel: CollectionPanel
+var _collection_button: Button
+var _new_color_popup: NewColorPopup
+var _pending_new_color: ColorCard  # bu hamlede ilk kez keşfedilen renk (kutlama için)
 var _selected_tube: int = -1
 var _animating := false
 
@@ -32,6 +37,9 @@ func _ready() -> void:
 	_levels = GameContent.levels()
 	_save = SaveService.new()
 	_settings = Settings.new()
+	_collection = Collection.new()
+	for id in GameContent.primary_ids():
+		_collection.discover(id)  # temel renkler her zaman bilinir
 	_level_index = clampi(_save.load_level_index(), 0, _levels.size() - 1)
 	_build_ui()
 	_start_level()
@@ -81,6 +89,41 @@ func _build_ui() -> void:
 
 	_recipe_panel = RecipePanel.new()
 	ui.add_child(_recipe_panel)
+
+	# Koleksiyon düğmesi (keşfedilen/keşfedilebilir sayısı) + ekranı + kutlama.
+	_collection_button = Button.new()
+	_collection_button.custom_minimum_size = Vector2(84, 64)
+	_collection_button.position = Vector2(get_viewport_rect().size.x - 104, get_viewport_rect().size.y - 88)
+	_collection_button.pressed.connect(_on_collection_pressed)
+	ui.add_child(_collection_button)
+	_update_collection_button()
+
+	_collection_panel = CollectionPanel.new()
+	ui.add_child(_collection_panel)
+
+	_new_color_popup = NewColorPopup.new()
+	ui.add_child(_new_color_popup)
+
+
+func _on_collection_pressed() -> void:
+	_collection_panel.show_collection(get_viewport_rect().size, _collection_entries(), _settings.colorblind_mode)
+
+
+func _collection_entries() -> Array:
+	var out: Array = []
+	for id in GameContent.primary_ids():
+		out.append({"card": _colors.get_card(id), "discovered": true})
+	for id in GameContent.discoverable_ids():
+		out.append({"card": _colors.get_card(id), "discovered": _collection.has(id)})
+	return out
+
+
+func _update_collection_button() -> void:
+	var found := 0
+	for id in GameContent.discoverable_ids():
+		if _collection.has(id):
+			found += 1
+	_collection_button.text = "%d/%d" % [found, GameContent.discoverable_ids().size()]
 
 
 func _on_info_pressed() -> void:
@@ -208,6 +251,14 @@ func _try_move(from_index: int, to_index: int) -> void:
 	var dest_size := _board.tube(to_index).size()
 
 	var result := _history.apply(move)
+
+	# Karışım sonucu ilk kez üretildiyse koleksiyona ekle (kutlama _finish_transfer'da).
+	_pending_new_color = null
+	if result.mixed and result.result_color != null:
+		if _collection.discover(result.result_color.id):
+			_pending_new_color = result.result_color
+			_update_collection_button()
+
 	var flash := result.dest_tube_solved or result.mixed  # tamamlanma ya da karışım → parla
 	_animate_transfer(from_index, to_index, source_size, dest_size, count, color, result.board_solved, flash, result.mixed)
 
@@ -281,6 +332,9 @@ func _finish_transfer(dest_index: int, won: bool, should_flash: bool) -> void:
 	_board_view.refresh_tube(dest_index)  # birimler hedefte belirir
 	if should_flash and not _settings.reduced_motion:
 		_board_view.tube_view(dest_index).play_complete_pulse()  # küçük zafer
+	if _pending_new_color != null:
+		_new_color_popup.celebrate(_pending_new_color, get_viewport_rect().size, _settings.colorblind_mode)
+		_pending_new_color = null
 	if won:
 		_win_overlay.show_win(get_viewport_rect().size)
 
