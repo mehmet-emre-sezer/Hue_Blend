@@ -9,7 +9,8 @@ const ARC_HEIGHT := 70.0    # ağızdan dökülme kavisi yüksekliği
 const MIX_HOLD := 0.32      # karışımdan önce "dökülen renk hedef üstünde" görünür kalsın
 
 var _colors: ColorRegistry
-var _mix_rules: MixRules
+var _full_rules: MixRules       # tüm karışım kataloğu
+var _current_rules: MixRules    # bu seviyenin açık tarifleri (seviye-bazlı sınırlama)
 var _levels: Array[LevelData]
 var _level_index: int = 0
 var _save: SaveService
@@ -27,7 +28,7 @@ var _animating := false
 
 func _ready() -> void:
 	_colors = GameContent.colors()
-	_mix_rules = GameContent.mix_rules(_colors)
+	_full_rules = GameContent.mix_rules(_colors)
 	_levels = GameContent.levels()
 	_save = SaveService.new()
 	_settings = Settings.new()
@@ -83,24 +84,35 @@ func _build_ui() -> void:
 
 
 func _on_info_pressed() -> void:
-	_recipe_panel.show_recipes(get_viewport_rect().size, _recipes_for_level(_levels[_level_index]), _settings.colorblind_mode)
+	_recipe_panel.show_recipes(get_viewport_rect().size, _recipes_display(), _settings.colorblind_mode)
 
 
-## Bu seviyede iki temel rengi de bulunan karışım tariflerini toplar.
-func _recipes_for_level(level: LevelData) -> Array:
-	var present := {}
-	for tube_ids in level.tubes:
-		for id_str in tube_ids:
-			present[StringName(id_str)] = true
+## Bu seviyenin açık tariflerini (zincir dahil) kutucuk verisine çevirir.
+func _recipes_display() -> Array:
 	var out: Array = []
-	for recipe in _mix_rules.recipes():
-		if present.has(recipe.a) and present.has(recipe.b):
-			out.append({
-				"a": _colors.get_card(recipe.a),
-				"b": _colors.get_card(recipe.b),
-				"result": recipe.result,
-			})
+	if _current_rules == null:
+		return out
+	for recipe in _current_rules.recipes():
+		out.append({
+			"a": _colors.get_card(recipe.a),
+			"b": _colors.get_card(recipe.b),
+			"result": recipe.result,
+		})
 	return out
+
+
+## Seviyenin AÇIK tariflerinden sınırlı MixRules (null → karışım yok).
+func _rules_for_level(level: LevelData) -> MixRules:
+	if not level.uses_mixing:
+		return null
+	var scoped := MixRules.new()
+	for pair in level.mix_pairs:
+		var a := StringName(pair[0])
+		var b := StringName(pair[1])
+		var result := _full_rules.result_of(a, b)
+		if result != null:
+			scoped.add(a, b, result)
+	return scoped
 
 
 func _on_reduced_motion_toggled(pressed: bool) -> void:
@@ -117,11 +129,11 @@ func _start_level() -> void:
 		_board_view.queue_free()
 
 	var level := _levels[_level_index]
-	var rules: MixRules = _mix_rules if level.uses_mixing else null
-	var errors := LevelValidator.new().validate(level, _colors, rules)
+	_current_rules = _rules_for_level(level)
+	var errors := LevelValidator.new().validate(level, _colors, _current_rules)
 	assert(errors.is_empty(), "seviye geçersiz: %s" % ", ".join(errors))
 
-	_board = LevelLoader.new().load_board(level, _colors, rules)
+	_board = LevelLoader.new().load_board(level, _colors, _current_rules)
 	_history = MoveHistory.new(_board)
 
 	_board_view = BoardView.new()

@@ -45,6 +45,10 @@ static func _draw_symbol(canvas: CanvasItem, symbol_id: StringName, center: Vect
 			_draw_ngon(canvas, center, radius, 5, ink)
 		&"hexagon":
 			_draw_ngon(canvas, center, radius, 6, ink)
+		&"heptagon":
+			_draw_ngon(canvas, center, radius, 7, ink)
+		&"octagon":
+			_draw_ngon(canvas, center, radius, 8, ink)
 		_:
 			canvas.draw_circle(center, radius * 0.4, ink)
 
