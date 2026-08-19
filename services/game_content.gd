@@ -17,8 +17,12 @@ static func colors() -> ColorRegistry:
 	registry.register(_card(&"purple", Color("9b5ac0"), &"pentagon"))
 	registry.register(_card(&"orange", Color("e0925a"), &"hexagon"))
 	# Üçüncül renkler (ikincil + temel → renk ağacı, Aşama 2)
-	registry.register(_card(&"teal", Color("3fa6a0"), &"heptagon"))    # yeşil + mavi
-	registry.register(_card(&"lime", Color("9fc74a"), &"octagon"))     # yeşil + sarı
+	registry.register(_card(&"teal", Color("3fa6a0"), &"heptagon"))       # yeşil + mavi
+	registry.register(_card(&"lime", Color("9fc74a"), &"octagon"))        # yeşil + sarı
+	registry.register(_card(&"amber", Color("e0a84a"), &"ring"))          # turuncu + sarı
+	registry.register(_card(&"vermilion", Color("e07040"), &"cross"))     # turuncu + kırmızı
+	registry.register(_card(&"magenta", Color("c04a9b"), &"star"))        # mor + kırmızı
+	registry.register(_card(&"violet", Color("7a5ac0"), &"plus"))         # mor + mavi
 	return registry
 
 
@@ -27,9 +31,12 @@ static func primary_ids() -> Array:
 	return [&"red", &"blue", &"yellow"]
 
 
-## Karışımla KEŞFEDİLEBİLİR renkler (koleksiyon ekranı sırası).
+## Karışımla KEŞFEDİLEBİLİR renkler (koleksiyon ekranı sırası): ikincil sonra üçüncül.
 static func discoverable_ids() -> Array:
-	return [&"green", &"purple", &"orange", &"teal", &"lime"]
+	return [
+		&"green", &"purple", &"orange",
+		&"teal", &"lime", &"amber", &"vermilion", &"magenta", &"violet",
+	]
 
 
 ## TAM karışım kataloğu: temel→ikincil ve ikincil+temel→üçüncül (renk ağacı).
@@ -43,6 +50,10 @@ static func mix_rules(registry: ColorRegistry) -> MixRules:
 	# Üçüncül (renk ağacı)
 	rules.add(&"green", &"blue", registry.get_card(&"teal"))
 	rules.add(&"green", &"yellow", registry.get_card(&"lime"))
+	rules.add(&"orange", &"yellow", registry.get_card(&"amber"))
+	rules.add(&"orange", &"red", registry.get_card(&"vermilion"))
+	rules.add(&"purple", &"red", registry.get_card(&"magenta"))
+	rules.add(&"purple", &"blue", registry.get_card(&"violet"))
 	return rules
 
 
@@ -74,11 +85,19 @@ static func levels() -> Array[LevelData]:
 	# Çok-ikincil — aynı seviyede iki ikincil renk üret
 	out.append(_generate_mixing(registry, full,
 		["blue", "blue", "red", "red", "yellow", "yellow", "yellow", "yellow"], [["blue", "yellow"], ["red", "yellow"]], 4, 3, 2006))
-	# Üçüncül (renk ağacı) — teal = 3:1 mavi:sarı, lime = 1:3 mavi:sarı
+	# Üçüncül (renk ağacı) — her biri 3:1 oranı ağaç yoluyla ifade eder
 	out.append(_generate_mixing(registry, full,
-		["blue", "blue", "blue", "yellow"], [["blue", "yellow"], ["green", "blue"]], 4, 3, 2007))
+		["blue", "blue", "blue", "yellow"], [["blue", "yellow"], ["green", "blue"]], 4, 3, 2007))  # teal
 	out.append(_generate_mixing(registry, full,
-		["blue", "yellow", "yellow", "yellow"], [["blue", "yellow"], ["green", "yellow"]], 4, 3, 2008))
+		["blue", "yellow", "yellow", "yellow"], [["blue", "yellow"], ["green", "yellow"]], 4, 3, 2008))  # lime
+	out.append(_generate_mixing(registry, full,
+		["red", "yellow", "yellow", "yellow"], [["red", "yellow"], ["orange", "yellow"]], 4, 3, 2009))  # amber
+	out.append(_generate_mixing(registry, full,
+		["red", "red", "red", "yellow"], [["red", "yellow"], ["orange", "red"]], 4, 3, 2010))  # vermilion
+	out.append(_generate_mixing(registry, full,
+		["red", "red", "red", "blue"], [["red", "blue"], ["purple", "red"]], 4, 3, 2011))  # magenta
+	out.append(_generate_mixing(registry, full,
+		["red", "blue", "blue", "blue"], [["red", "blue"], ["purple", "blue"]], 4, 3, 2012))  # violet
 	return out
 
 
