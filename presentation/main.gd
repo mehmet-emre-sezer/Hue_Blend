@@ -29,6 +29,7 @@ var _collection_button: Button
 var _new_color_popup: NewColorPopup
 var _artwork_panel: ArtworkPanel
 var _level_select_panel: LevelSelectPanel
+var _title_screen: TitleScreen
 var _level_button: Button
 var _pending_new_color: ColorCard  # bu hamlede ilk kez keşfedilen renk (kutlama için)
 var _selected_tube: int = -1
@@ -135,6 +136,12 @@ func _build_ui() -> void:
 	_artwork_panel = ArtworkPanel.new()
 	ui.add_child(_artwork_panel)
 
+	# Açılış ekranı EN SON eklenir → tüm ekranı örter; "Oyna"ya kadar üstte durur.
+	_title_screen = TitleScreen.new()
+	_title_screen.play_requested.connect(_on_play_pressed)
+	ui.add_child(_title_screen)
+	_title_screen.show_title(get_viewport_rect().size)
+
 
 ## Yumuşak cozy arka plan gradyanı (en arka katman).
 func _build_background() -> void:
@@ -165,6 +172,10 @@ func _on_collection_pressed() -> void:
 func _on_artwork_pressed() -> void:
 	# Dolan hücre sayısı = çözülen (açılan) seviye sayısı.
 	_artwork_panel.show_artwork(get_viewport_rect().size, GameContent.artwork_rows(), _colors, _max_unlocked, _settings.colorblind_mode)
+
+
+func _on_play_pressed() -> void:
+	_title_screen.hide()  # oyun altta zaten hazır; sadece açılış katmanını kaldır
 
 
 func _on_level_button_pressed() -> void:
@@ -275,25 +286,10 @@ func _on_continue() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	# DEBUG: N/P ile seviye atla (yayından önce kaldırılacak — X-028).
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_N:
-			_debug_jump_level(1)
-			return
-		if event.keycode == KEY_P:
-			_debug_jump_level(-1)
-			return
 	if event is InputEventScreenTouch and event.pressed:
 		_on_tap(event.position)
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_on_tap(event.position)
-
-
-func _debug_jump_level(delta: int) -> void:
-	if _animating:
-		return
-	_level_index = clampi(_level_index + delta, 0, _levels.size() - 1)
-	_start_level()
 
 
 func _on_tap(screen_position: Vector2) -> void:
