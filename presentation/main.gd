@@ -46,6 +46,7 @@ func _ready() -> void:
 
 
 func _build_ui() -> void:
+	_build_background()
 	add_child(DebugOverlay.new())
 
 	var ui := CanvasLayer.new()
@@ -103,6 +104,28 @@ func _build_ui() -> void:
 
 	_new_color_popup = NewColorPopup.new()
 	ui.add_child(_new_color_popup)
+
+
+## Yumuşak cozy arka plan gradyanı (en arka katman).
+func _build_background() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = -10
+	add_child(layer)
+	var gradient := Gradient.new()
+	gradient.set_color(0, Color("2b2540"))  # üst: yumuşak koyu mor
+	gradient.set_color(1, Color("161222"))  # alt: daha koyu
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.fill_from = Vector2(0.5, 0.0)
+	texture.fill_to = Vector2(0.5, 1.0)
+	texture.width = 4
+	texture.height = 256
+	var rect := TextureRect.new()
+	rect.texture = texture
+	rect.stretch_mode = TextureRect.STRETCH_SCALE
+	rect.position = Vector2.ZERO
+	rect.size = get_viewport_rect().size
+	layer.add_child(rect)
 
 
 func _on_collection_pressed() -> void:

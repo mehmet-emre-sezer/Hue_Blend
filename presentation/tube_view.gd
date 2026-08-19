@@ -74,7 +74,13 @@ func _draw() -> void:
 	var height := _tube.capacity() * UnitVisual.UNIT_HEIGHT
 	var bounds := Rect2(0, 0, UnitVisual.TUBE_WIDTH, height)
 
-	draw_rect(bounds, Color(1, 1, 1, 0.06))  # tüp zemini
+	# Cam kavanoz gövde (yuvarlak, hafif saydam)
+	var glass := StyleBoxFlat.new()
+	glass.bg_color = Color(1, 1, 1, 0.05)
+	glass.set_corner_radius_all(14)
+	glass.corner_radius_top_left = 8
+	glass.corner_radius_top_right = 8
+	draw_style_box(glass, bounds)
 
 	var cards := _tube.cards_snapshot()  # dip→üst
 	var top_index := cards.size() - 1
@@ -89,9 +95,21 @@ func _draw() -> void:
 		)
 		UnitVisual.draw_unit(self, rect, card.display_color, card.symbol_id, _show_symbols)
 
-	if _flash > 0.0:
-		draw_rect(bounds, Color(1, 1, 1, _flash))  # tamamlanma parlaması
+	# Cam parlaması (sol dikey şerit)
+	draw_line(Vector2(7, 12), Vector2(7, height - 14), Color(1, 1, 1, 0.10), 3.0)
 
-	var outline := Color(1, 0.85, 0.4) if _selected else Color(1, 1, 1, 0.5)
-	var outline_width := 4.0 if _selected else 2.0
-	draw_rect(bounds, outline, false, outline_width)  # dış çizgi (seçiliyse vurgulu)
+	if _flash > 0.0:
+		var flash_box := StyleBoxFlat.new()
+		flash_box.bg_color = Color(1, 1, 1, _flash)
+		flash_box.set_corner_radius_all(14)
+		draw_style_box(flash_box, bounds)  # tamamlanma parlaması
+
+	# Yuvarlak dış çizgi (seçiliyse vurgulu)
+	var outline := StyleBoxFlat.new()
+	outline.draw_center = false
+	outline.set_corner_radius_all(14)
+	outline.corner_radius_top_left = 8
+	outline.corner_radius_top_right = 8
+	outline.set_border_width_all(4 if _selected else 2)
+	outline.border_color = Color(1, 0.85, 0.4) if _selected else Color(1, 1, 1, 0.45)
+	draw_style_box(outline, bounds)

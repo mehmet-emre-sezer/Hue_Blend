@@ -14,9 +14,24 @@ static func unit_inner_size() -> Vector2:
 	return Vector2(TUBE_WIDTH - 2 * PADDING, UNIT_HEIGHT - 2 * PADDING)
 
 
-## Verilen canvas üzerine bir birimi çizer: renk dolgusu (+ isteğe bağlı renk körü sembolü).
+const CORNER := 10.0
+
+## Bir birimi boya blobu gibi çizer: yuvarlak köşe + üst parlaklık (+ opsiyonel sembol).
 static func draw_unit(canvas: CanvasItem, rect: Rect2, color: Color, symbol_id: StringName, show_symbol: bool) -> void:
-	canvas.draw_rect(rect, color)
+	var body := StyleBoxFlat.new()
+	body.bg_color = color
+	body.set_corner_radius_all(int(CORNER))
+	canvas.draw_style_box(body, rect)
+
+	# Üst parlaklık (boya seheni)
+	var gloss := StyleBoxFlat.new()
+	var gloss_color := color.lightened(0.35)
+	gloss_color.a = 0.4
+	gloss.bg_color = gloss_color
+	gloss.set_corner_radius_all(int(CORNER * 0.7))
+	var gloss_rect := Rect2(rect.position + Vector2(5, 4), Vector2(rect.size.x - 10, rect.size.y * 0.32))
+	canvas.draw_style_box(gloss, gloss_rect)
+
 	if show_symbol:
 		_draw_symbol(canvas, symbol_id, rect.get_center(), SYMBOL_RADIUS)
 
