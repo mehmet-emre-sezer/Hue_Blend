@@ -42,11 +42,20 @@ static func levels() -> Array[LevelData]:
 	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 5, 3, 808))
 	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 6, 2, 909))
 	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 6, 3, 1010))
-	# Faz 2: karışımlı seviyeler (her biri bir ikincil rengi öğretir)
+	# Faz 2: karışımlı seviyeler
 	var rules := mix_rules(registry)
+	# Öğretici — her biri bir ikincil rengi tanıtır
 	out.append(_generate_mixing(registry, rules, ["blue", "blue", "yellow", "yellow"], 4, 2, 2001))
 	out.append(_generate_mixing(registry, rules, ["red", "red", "blue", "blue"], 4, 2, 2002))
 	out.append(_generate_mixing(registry, rules, ["red", "red", "yellow", "yellow"], 4, 2, 2003))
+	# Birleşik — bazı renkler saf kalır, bazıları karıştırılır
+	out.append(_generate_mixing(registry, rules,
+		["blue", "blue", "blue", "blue", "blue", "blue", "yellow", "yellow"], 4, 2, 2004))
+	out.append(_generate_mixing(registry, rules,
+		["red", "red", "red", "red", "red", "red", "blue", "blue"], 4, 2, 2005))
+	# Çok-ikincil — aynı seviyede iki ikincil renk üret
+	out.append(_generate_mixing(registry, rules,
+		["blue", "blue", "red", "red", "yellow", "yellow", "yellow", "yellow"], 4, 3, 2006))
 	return out
 
 
