@@ -26,6 +26,7 @@ var _info_button: Button
 var _collection_panel: CollectionPanel
 var _collection_button: Button
 var _new_color_popup: NewColorPopup
+var _artwork_panel: ArtworkPanel
 var _pending_new_color: ColorCard  # bu hamlede ilk kez keşfedilen renk (kutlama için)
 var _selected_tube: int = -1
 var _animating := false
@@ -105,6 +106,19 @@ func _build_ui() -> void:
 	_new_color_popup = NewColorPopup.new()
 	ui.add_child(_new_color_popup)
 
+	# Eser düğmesi (mozaik ilerlemesi) + ekranı.
+	var artwork_button := Button.new()
+	artwork_button.text = "♥"
+	artwork_button.add_theme_font_size_override("font_size", 30)
+	artwork_button.add_theme_color_override("font_color", Color("e0645a"))
+	artwork_button.custom_minimum_size = Vector2(64, 60)
+	artwork_button.position = Vector2(12, 46)
+	artwork_button.pressed.connect(_on_artwork_pressed)
+	ui.add_child(artwork_button)
+
+	_artwork_panel = ArtworkPanel.new()
+	ui.add_child(_artwork_panel)
+
 
 ## Yumuşak cozy arka plan gradyanı (en arka katman).
 func _build_background() -> void:
@@ -130,6 +144,11 @@ func _build_background() -> void:
 
 func _on_collection_pressed() -> void:
 	_collection_panel.show_collection(get_viewport_rect().size, _collection_entries(), _settings.colorblind_mode)
+
+
+func _on_artwork_pressed() -> void:
+	# Dolan hücre sayısı = çözülen seviye sayısı (_level_index).
+	_artwork_panel.show_artwork(get_viewport_rect().size, GameContent.artwork_rows(), _colors, _level_index, _settings.colorblind_mode)
 
 
 func _collection_entries() -> Array:

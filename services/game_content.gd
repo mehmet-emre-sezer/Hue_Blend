@@ -26,6 +26,28 @@ static func colors() -> ColorRegistry:
 	return registry
 
 
+## "Eser" mozaiği: her çözülen seviye bir sonraki (boş olmayan) hücreyi açar.
+## "" = boş (desenin dışı). 18 dolu hücre → ~18 seviyede tamamlanır.
+static func artwork_rows() -> Array:
+	return [
+		["red", "magenta", "", "magenta", "red"],
+		["red", "red", "vermilion", "red", "red"],
+		["orange", "red", "red", "red", "orange"],
+		["", "vermilion", "red", "vermilion", ""],
+		["", "", "red", "", ""],
+	]
+
+
+## Eserdeki toplam dolu (boş olmayan) hücre sayısı.
+static func artwork_cell_count() -> int:
+	var total := 0
+	for row in artwork_rows():
+		for id in row:
+			if id != "":
+				total += 1
+	return total
+
+
 ## Temel renkler (her zaman bilinir — başlangıç paleti).
 static func primary_ids() -> Array:
 	return [&"red", &"blue", &"yellow"]
