@@ -12,7 +12,8 @@ var _colors: ColorRegistry
 var _full_rules: MixRules       # tüm karışım kataloğu
 var _current_rules: MixRules    # bu seviyenin açık tarifleri (seviye-bazlı sınırlama)
 var _levels: Array[LevelData]
-var _level_index: int = 0
+var _level_index: int = 0      # şu an oynanan seviye
+var _max_unlocked: int = 0     # açılan en yüksek seviye (ilerleme, kalıcı)
 var _save: SaveService
 var _settings: Settings
 var _collection: Collection
@@ -27,6 +28,8 @@ var _collection_panel: CollectionPanel
 var _collection_button: Button
 var _new_color_popup: NewColorPopup
 var _artwork_panel: ArtworkPanel
+var _level_select_panel: LevelSelectPanel
+var _level_button: Button
 var _pending_new_color: ColorCard  # bu hamlede ilk kez keşfedilen renk (kutlama için)
 var _selected_tube: int = -1
 var _animating := false
@@ -41,7 +44,8 @@ func _ready() -> void:
 	_collection = Collection.new()
 	for id in GameContent.primary_ids():
 		_collection.discover(id)  # temel renkler her zaman bilinir
-	_level_index = clampi(_save.load_level_index(), 0, _levels.size() - 1)
+	_max_unlocked = clampi(_save.load_level_index(), 0, _levels.size() - 1)
+	_level_index = _max_unlocked  # kaldığın en yüksek seviyeden başla
 	_build_ui()
 	_start_level()
 
@@ -76,12 +80,24 @@ func _build_ui() -> void:
 	colorblind_toggle.toggled.connect(_on_colorblind_toggled)
 	ui.add_child(colorblind_toggle)
 
-	# Tarif/info düğmesi (yalnız karışım seviyelerinde görünür).
+	# Seviye düğmesi (üst-orta, "N/M") — seviye seçim ekranını açar + ilerleme göstergesi.
+	_level_button = Button.new()
+	_level_button.add_theme_font_size_override("font_size", 22)
+	_level_button.custom_minimum_size = Vector2(96, 52)
+	_level_button.position = Vector2(get_viewport_rect().size.x / 2.0 - 48, 8)
+	_level_button.pressed.connect(_on_level_button_pressed)
+	ui.add_child(_level_button)
+
+	_level_select_panel = LevelSelectPanel.new()
+	_level_select_panel.level_chosen.connect(_on_level_chosen)
+	ui.add_child(_level_select_panel)
+
+	# Tarif/info düğmesi (yalnız karışım seviyelerinde görünür) — alt-orta.
 	_info_button = Button.new()
 	_info_button.text = "?"
 	_info_button.add_theme_font_size_override("font_size", 34)
 	_info_button.custom_minimum_size = Vector2(64, 64)
-	_info_button.position = Vector2(get_viewport_rect().size.x / 2.0 - 32, 36)
+	_info_button.position = Vector2(get_viewport_rect().size.x / 2.0 - 32, get_viewport_rect().size.y - 88)
 	_info_button.pressed.connect(_on_info_pressed)
 	ui.add_child(_info_button)
 
@@ -147,8 +163,21 @@ func _on_collection_pressed() -> void:
 
 
 func _on_artwork_pressed() -> void:
-	# Dolan hücre sayısı = çözülen seviye sayısı (_level_index).
-	_artwork_panel.show_artwork(get_viewport_rect().size, GameContent.artwork_rows(), _colors, _level_index, _settings.colorblind_mode)
+	# Dolan hücre sayısı = çözülen (açılan) seviye sayısı.
+	_artwork_panel.show_artwork(get_viewport_rect().size, GameContent.artwork_rows(), _colors, _max_unlocked, _settings.colorblind_mode)
+
+
+func _on_level_button_pressed() -> void:
+	_level_select_panel.show_levels(get_viewport_rect().size, _levels.size(), _max_unlocked + 1, _level_index)
+
+
+func _on_level_chosen(index: int) -> void:
+	_level_index = index
+	_start_level()
+
+
+func _update_level_button() -> void:
+	_level_button.text = "%d/%d" % [_level_index + 1, _levels.size()]
 
 
 func _collection_entries() -> Array:
@@ -230,14 +259,18 @@ func _start_level() -> void:
 	_set_selection(-1)
 	_win_overlay.hide()
 	_recipe_panel.hide()
+	_level_select_panel.hide()
+	_update_level_button()
 	_info_button.visible = level.uses_mixing  # tarif düğmesi yalnız karışım seviyelerinde
 
 
 func _on_continue() -> void:
-	# Kazançtan sonra bir sonraki seviyeye geç (son seviyedeyse tekrar oyna) ve kaydet.
+	# Kazançtan sonra bir sonraki seviyeye geç; yeni seviye açıldıysa ilerlemeyi kaydet.
 	if _level_index < _levels.size() - 1:
 		_level_index += 1
-		_save.save_progress(_level_index)
+		if _level_index > _max_unlocked:
+			_max_unlocked = _level_index
+			_save.save_progress(_max_unlocked)
 	_start_level()
 
 
