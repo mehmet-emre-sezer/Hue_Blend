@@ -16,24 +16,32 @@ static func unit_inner_size() -> Vector2:
 
 const CORNER := 10.0
 
-## Bir birimi boya blobu gibi çizer: yuvarlak köşe + üst parlaklık (+ opsiyonel sembol).
+## Tek birim: boya blobu + (opsiyonel) sembol. Panellerde (tarif/koleksiyon/eser) kullanılır.
 static func draw_unit(canvas: CanvasItem, rect: Rect2, color: Color, symbol_id: StringName, show_symbol: bool) -> void:
+	draw_blob(canvas, rect, color)
+	if show_symbol:
+		draw_symbol(canvas, symbol_id, rect.get_center())
+
+
+## Boya gövdesi: yuvarlak köşe + üst parlaklık (sıvı seheni). Sembol içermez.
+## Tüplerde bir "sıvı sütunu" (aynı renk birleşik run) tek çağrıyla çizilebilsin diye ayrı.
+static func draw_blob(canvas: CanvasItem, rect: Rect2, color: Color) -> void:
 	var body := StyleBoxFlat.new()
 	body.bg_color = color
 	body.set_corner_radius_all(int(CORNER))
 	canvas.draw_style_box(body, rect)
 
-	# Üst parlaklık (boya seheni)
 	var gloss := StyleBoxFlat.new()
 	var gloss_color := color.lightened(0.35)
 	gloss_color.a = 0.4
 	gloss.bg_color = gloss_color
 	gloss.set_corner_radius_all(int(CORNER * 0.7))
-	var gloss_rect := Rect2(rect.position + Vector2(5, 4), Vector2(rect.size.x - 10, rect.size.y * 0.32))
+	var gloss_rect := Rect2(rect.position + Vector2(5, 4), Vector2(rect.size.x - 10, minf(rect.size.y * 0.32, 22.0)))
 	canvas.draw_style_box(gloss, gloss_rect)
 
-	if show_symbol:
-		_draw_symbol(canvas, symbol_id, rect.get_center(), SYMBOL_RADIUS)
+
+static func draw_symbol(canvas: CanvasItem, symbol_id: StringName, center: Vector2) -> void:
+	_draw_symbol(canvas, symbol_id, center, SYMBOL_RADIUS)
 
 
 static func _draw_symbol(canvas: CanvasItem, symbol_id: StringName, center: Vector2, radius: float) -> void:
