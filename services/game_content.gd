@@ -79,47 +79,58 @@ static func mix_rules(registry: ColorRegistry) -> MixRules:
 	return rules
 
 
-## Artan zorlukta seviye listesi (renk sayısı ve kapasite arttıkça zorlaşır).
+## Artan zorlukta seviye listesi. Zorluk RENK SAYISINDAN gelir (3→6, boş tüp hep 2 =
+## klasik su-sort gerilimi); ayrıca 'easy_floor' ile birkaç hamlede biten trivial dağıtımlar
+## elenir (maymun-testi). Karışım seviyeleri bir sıralama bulmacasına gömülü ve daha hacimli.
 static func levels() -> Array[LevelData]:
 	var registry := colors()
 	var out: Array[LevelData] = []
-	out.append(_generate(registry, ["red", "blue"], 4, 2, 101))
-	out.append(_generate(registry, ["red", "blue", "green"], 4, 2, 202))
-	out.append(_generate(registry, ["red", "blue", "green"], 4, 2, 303))
-	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 4, 2, 404))
-	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 5, 2, 505))
-	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 4, 3, 606))
-	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 5, 2, 707))
-	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 5, 3, 808))
-	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 6, 2, 909))
-	out.append(_generate(registry, ["red", "blue", "green", "yellow"], 6, 3, 1010))
-	# Faz 2: karışımlı seviyeler (her biri yalnız kendi tariflerini açar — seviye-bazlı)
+	# Sıralama (karışımsız) — renk sayısı artar, boş tüp 2'de sabit, zorluk tabanı yükselir.
+	out.append(_generate(registry, ["red", "blue", "yellow"], 4, 2, 101, 2))
+	out.append(_generate(registry, ["red", "blue", "green"], 4, 2, 202, 3))
+	out.append(_generate(registry, ["red", "blue", "yellow", "green"], 4, 2, 303, 4))
+	out.append(_generate(registry, ["red", "blue", "yellow", "orange"], 4, 2, 404, 4))
+	out.append(_generate(registry, ["red", "blue", "yellow", "green", "purple"], 4, 2, 505, 5))
+	out.append(_generate(registry, ["red", "blue", "yellow", "green", "orange"], 4, 2, 606, 5))
+	out.append(_generate(registry, ["red", "blue", "yellow", "green", "purple", "orange"], 4, 2, 707, 6))
+	out.append(_generate(registry, ["red", "blue", "yellow", "green", "purple", "orange"], 4, 2, 808, 6))
+	out.append(_generate(registry, ["red", "blue", "yellow", "green", "purple", "orange"], 4, 2, 909, 7))
+	out.append(_generate(registry, ["red", "blue", "yellow", "green", "purple", "orange"], 4, 2, 1010, 7))
+	# Faz 2: karışımlı seviyeler (her biri yalnız kendi tariflerini açar — seviye-bazlı).
 	var full := mix_rules(registry)
-	# Öğretici — her biri bir ikincil rengi tanıtır
-	out.append(_generate_mixing(registry, full, ["blue", "blue", "yellow", "yellow"], [["blue", "yellow"]], 4, 2, 2001))
-	out.append(_generate_mixing(registry, full, ["red", "red", "blue", "blue"], [["red", "blue"]], 4, 2, 2002))
-	out.append(_generate_mixing(registry, full, ["red", "red", "yellow", "yellow"], [["red", "yellow"]], 4, 2, 2003))
-	# Birleşik — bazı renkler saf kalır, bazıları karıştırılır
-	out.append(_generate_mixing(registry, full,
-		["blue", "blue", "blue", "blue", "blue", "blue", "yellow", "yellow"], [["blue", "yellow"]], 4, 2, 2004))
-	out.append(_generate_mixing(registry, full,
-		["red", "red", "red", "red", "red", "red", "blue", "blue"], [["red", "blue"]], 4, 2, 2005))
-	# Çok-ikincil — aynı seviyede iki ikincil renk üret
-	out.append(_generate_mixing(registry, full,
-		["blue", "blue", "red", "red", "yellow", "yellow", "yellow", "yellow"], [["blue", "yellow"], ["red", "yellow"]], 4, 3, 2006))
-	# Üçüncül (renk ağacı) — her biri 3:1 oranı ağaç yoluyla ifade eder
-	out.append(_generate_mixing(registry, full,
-		["blue", "blue", "blue", "yellow"], [["blue", "yellow"], ["green", "blue"]], 4, 3, 2007))  # teal
-	out.append(_generate_mixing(registry, full,
-		["blue", "yellow", "yellow", "yellow"], [["blue", "yellow"], ["green", "yellow"]], 4, 3, 2008))  # lime
-	out.append(_generate_mixing(registry, full,
-		["red", "yellow", "yellow", "yellow"], [["red", "yellow"], ["orange", "yellow"]], 4, 3, 2009))  # amber
-	out.append(_generate_mixing(registry, full,
-		["red", "red", "red", "yellow"], [["red", "yellow"], ["orange", "red"]], 4, 3, 2010))  # vermilion
-	out.append(_generate_mixing(registry, full,
-		["red", "red", "red", "blue"], [["red", "blue"], ["purple", "red"]], 4, 3, 2011))  # magenta
-	out.append(_generate_mixing(registry, full,
-		["red", "blue", "blue", "blue"], [["red", "blue"], ["purple", "blue"]], 4, 3, 2012))  # violet
+	# Öğretici — her biri bir ikincil rengi nazikçe tanıtır. Küçük hacim (2+2): renk sayıları
+	# kapasitenin katı DEĞİL, o yüzden karışımsız çözülemez (mekanik burada öğretilir).
+	out.append(_generate_mixing(registry, full, _bag([["blue", 2], ["yellow", 2]]), [["blue", "yellow"]], 4, 2, 2001, 0))
+	out.append(_generate_mixing(registry, full, _bag([["red", 2], ["blue", 2]]), [["red", "blue"]], 4, 2, 2002, 0))
+	out.append(_generate_mixing(registry, full, _bag([["red", 2], ["yellow", 2]]), [["red", "yellow"]], 4, 2, 2003, 0))
+	# Birleşik — bazı renkler saf kalır, bazıları karıştırılır.
+	out.append(_generate_mixing(registry, full, _bag([["blue", 6], ["yellow", 2]]), [["blue", "yellow"]], 4, 2, 2004, 4))
+	out.append(_generate_mixing(registry, full, _bag([["red", 6], ["blue", 2]]), [["red", "blue"]], 4, 2, 2005, 4))
+	# Çok-ikincil — aynı seviyede iki ikincil renk üret.
+	out.append(_generate_mixing(registry, full, _bag([["blue", 2], ["red", 2], ["yellow", 4]]),
+		[["blue", "yellow"], ["red", "yellow"]], 4, 3, 2006, 4))
+	# Üçüncül (renk ağacı) — 3:1 oranı ağaç yoluyla, hacim 2 tüp (8 birim).
+	out.append(_generate_mixing(registry, full, _bag([["blue", 6], ["yellow", 2]]),
+		[["blue", "yellow"], ["green", "blue"]], 4, 3, 2007, 4))  # teal
+	out.append(_generate_mixing(registry, full, _bag([["blue", 2], ["yellow", 6]]),
+		[["blue", "yellow"], ["green", "yellow"]], 4, 3, 2008, 4))  # lime
+	out.append(_generate_mixing(registry, full, _bag([["red", 2], ["yellow", 6]]),
+		[["red", "yellow"], ["orange", "yellow"]], 4, 3, 2009, 4))  # amber
+	out.append(_generate_mixing(registry, full, _bag([["red", 6], ["yellow", 2]]),
+		[["red", "yellow"], ["orange", "red"]], 4, 3, 2010, 4))  # vermilion
+	out.append(_generate_mixing(registry, full, _bag([["red", 6], ["blue", 2]]),
+		[["red", "blue"], ["purple", "red"]], 4, 3, 2011, 4))  # magenta
+	out.append(_generate_mixing(registry, full, _bag([["red", 2], ["blue", 6]]),
+		[["red", "blue"], ["purple", "blue"]], 4, 3, 2012, 4))  # violet
+	return out
+
+
+## Renk-adet çiftlerinden düz bir torba listesi kurar: _bag([["blue",4],["yellow",4]]).
+static func _bag(pairs: Array) -> Array:
+	var out: Array = []
+	for pair in pairs:
+		for i in int(pair[1]):
+			out.append(String(pair[0]))
 	return out
 
 
@@ -134,15 +145,18 @@ static func _card(id: StringName, color: Color, symbol: StringName) -> ColorCard
 ## Seed'li rastgele dağıtım üretir; çözülebilir VE çözülü-değil olana kadar seed'i artırır.
 static func _generate(
 	registry: ColorRegistry, color_ids: Array, capacity: int,
-	empty_tubes: int, seed_value: int
+	empty_tubes: int, seed_value: int, easy_floor: int = 0
 ) -> LevelData:
 	var solver := LevelSolver.new()
 	var loader := LevelLoader.new()
 	var attempt := 0
-	while attempt < 500:
+	while attempt < 600:
 		var level := _random_deal(color_ids, capacity, empty_tubes, seed_value + attempt)
 		var board := loader.load_board(level, registry)
-		if not board.is_solved() and solver.is_solvable(level, registry):
+		# Çözülebilir + başlangıçta çözülü değil + 'easy_floor' hamlede çözülecek kadar
+		# BASİT değil (maymun-testi: birkaç rastgele hamlede biten seviyeleri ele).
+		if not board.is_solved() and solver.is_solvable(level, registry) \
+				and not solver.is_solvable_within(level, registry, null, easy_floor, 30000):
 			return level
 		attempt += 1
 	push_error("Çözülebilir seviye üretilemedi (seed %d)" % seed_value)
@@ -184,15 +198,19 @@ static func _random_deal(color_ids: Array, capacity: int, empty_tubes: int, seed
 ## çözülemez olana kadar seed'i artırır (gerçekten karıştırma gerektirir).
 static func _generate_mixing(
 	registry: ColorRegistry, full_rules: MixRules, bag_ids: Array, mix_pairs: Array,
-	capacity: int, empty_tubes: int, seed_value: int
+	capacity: int, empty_tubes: int, seed_value: int, easy_floor: int = 0
 ) -> LevelData:
 	var scoped := _scoped_rules(registry, full_rules, mix_pairs)
 	var typed_pairs := _to_typed_pairs(mix_pairs)
 	var solver := LevelSolver.new()
 	var attempt := 0
-	while attempt < 800:
+	while attempt < 1200:
 		var level := _deal_mixing(bag_ids, capacity, empty_tubes, seed_value + attempt)
-		if solver.is_solvable(level, registry, scoped) and not solver.is_solvable(level, registry, null):
+		# Karışımla çözülebilir + karışımsız çözülemez (gerçekten karıştırma gerektirir)
+		# + 'easy_floor' hamlede bitecek kadar basit değil (trivial karışım seviyelerini ele).
+		if solver.is_solvable(level, registry, scoped) \
+				and not solver.is_solvable(level, registry, null) \
+				and not solver.is_solvable_within(level, registry, scoped, easy_floor, 30000):
 			level.uses_mixing = true
 			level.mix_pairs = typed_pairs
 			return level

@@ -113,6 +113,18 @@ func _draw() -> void:
 			count * UnitVisual.UNIT_HEIGHT - 4.0
 		)
 		UnitVisual.draw_blob(self, rect, run_color.display_color)
+		# Aynı renk birimler arası ince ayraç: miktar sayılabilsin (karışımda önemli),
+		# ama tek sıvı sütunu/boya hissi korunsun (kutu boşluğu değil, boya seheni).
+		if count > 1:
+			var seam := run_color.display_color.darkened(0.22)
+			seam.a = 0.35
+			for k in range(1, count):
+				var seam_y := run_top + lift + k * UnitVisual.UNIT_HEIGHT
+				draw_line(
+					Vector2(rect.position.x + 3.0, seam_y),
+					Vector2(rect.position.x + rect.size.x - 3.0, seam_y),
+					seam, 2.0
+				)
 		if _show_symbols:
 			for k in count:
 				var symbol_y := height - (start + k + 0.5) * UnitVisual.UNIT_HEIGHT + lift

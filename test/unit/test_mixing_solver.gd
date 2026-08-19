@@ -70,3 +70,32 @@ func test_teal_recipe_olmadan_cozulemez() -> void:
 	var only_green := MixRules.new()
 	only_green.add(&"blue", &"yellow", colors.get_card(&"green"))  # teal recipe YOK
 	assert_false(LevelSolver.new().is_solvable(_teal_level(), colors, only_green), "teal recipe olmadan çözülemez")
+
+
+## Zorluk tabanı: derinlik-sınırlı BFS. 1 hamlede çözülen seviye ile sınırları doğrula.
+func _blue_colors() -> ColorRegistry:
+	var reg := ColorRegistry.new()
+	var card := ColorCard.new()
+	card.id = &"blue"
+	reg.register(card)
+	return reg
+
+
+func _one_move_level() -> LevelData:
+	var level := LevelData.new()
+	level.capacity = 2
+	var tubes: Array[PackedStringArray] = []
+	tubes.append(PackedStringArray(["blue"]))  # tube0 → tube1'e dökülünce tek hamlede çözülür
+	tubes.append(PackedStringArray(["blue"]))
+	tubes.append(PackedStringArray([]))
+	level.tubes = tubes
+	return level
+
+
+func test_is_solvable_within_sinirlari() -> void:
+	var colors := _blue_colors()
+	var solver := LevelSolver.new()
+	var level := _one_move_level()
+	assert_false(solver.is_solvable_within(level, colors, null, 0), "0 derinlikte (başlangıç) çözülü değil")
+	assert_true(solver.is_solvable_within(level, colors, null, 1), "1 hamlede çözülür")
+	assert_true(solver.is_solvable_within(level, colors, null, 4), "daha geniş sınırda da çözülür")

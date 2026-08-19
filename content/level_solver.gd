@@ -30,6 +30,40 @@ func is_solvable(level: LevelData, colors: ColorRegistry, mix_rules: MixRules = 
 	return false
 
 
+## Seviye en fazla 'max_depth' hamlede çözülebiliyor mu? (zorluk tabanı için — derinlik
+## sınırlı BFS). true → seviye o kadar kolay ki reddedilmeli. Düğüm sınırı aşılırsa (durum
+## uzayı zaten çok geniş = kolay değil) false döner. Successor'lar yine Pour.compute'tan.
+func is_solvable_within(
+	level: LevelData, colors: ColorRegistry, mix_rules: MixRules = null,
+	max_depth: int = 5, node_limit: int = 200000
+) -> bool:
+	var capacity := level.capacity
+	var start := _encode(level, colors)
+	if _is_solved(start, capacity):
+		return true
+	var visited := {_key(start): true}
+	var frontier: Array = [start]
+	var depth := 0
+	var nodes := 0
+
+	while not frontier.is_empty() and depth < max_depth:
+		var next_frontier: Array = []
+		for state in frontier:
+			for successor in _successors(state, capacity, mix_rules):
+				nodes += 1
+				if nodes > node_limit:
+					return false  # uzay çok geniş → bu derinlikte kolayca çözülmüyor say
+				if _is_solved(successor, capacity):
+					return true
+				var key := _key(successor)
+				if not visited.has(key):
+					visited[key] = true
+					next_frontier.append(successor)
+		frontier = next_frontier
+		depth += 1
+	return false
+
+
 func _encode(level: LevelData, colors: ColorRegistry) -> Array:
 	var out: Array = []
 	for tube_ids in level.tubes:
