@@ -140,7 +140,7 @@ func _build_ui() -> void:
 	_title_screen = TitleScreen.new()
 	_title_screen.play_requested.connect(_on_play_pressed)
 	ui.add_child(_title_screen)
-	_title_screen.show_title(get_viewport_rect().size)
+	_title_screen.show_title(get_viewport_rect().size, _level_index + 1, _levels.size())
 
 
 ## Yumuşak cozy arka plan gradyanı (en arka katman).
