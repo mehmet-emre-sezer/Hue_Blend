@@ -8,6 +8,12 @@ const POUR_STAGGER := 0.05  # birimler sıra sıra aksın
 const ARC_HEIGHT := 70.0    # ağızdan dökülme kavisi yüksekliği
 const MIX_HOLD := 0.32      # karışımdan önce "dökülen renk hedef üstünde" görünür kalsın
 
+# HUD ikonları (Lucide, ISC) — gerçek vektör asset.
+const _ICON_UNDO := preload("res://assets/icons/rotate-ccw.svg")
+const _ICON_INFO := preload("res://assets/icons/info.svg")
+const _ICON_PALETTE := preload("res://assets/icons/palette.svg")
+const _ICON_ARTWORK := preload("res://assets/icons/image.svg")
+
 var _colors: ColorRegistry
 var _full_rules: MixRules       # tüm karışım kataloğu
 var _current_rules: MixRules    # bu seviyenin açık tarifleri (seviye-bazlı sınırlama)
@@ -58,11 +64,24 @@ func _build_ui() -> void:
 	var ui := CanvasLayer.new()
 	add_child(ui)
 
+	# Üst başlık barı (Kenney panel, 9-patch) — üst butonları bir HUD gibi çerçeveler.
+	# Köşeler ekran dışına taşar → tepeden sarkan bar hissi.
+	var header := NinePatchRect.new()
+	header.texture = UITheme.PANEL
+	header.patch_margin_left = 22
+	header.patch_margin_right = 22
+	header.patch_margin_top = 22
+	header.patch_margin_bottom = 22
+	header.modulate = UITheme.SURFACE
+	header.position = Vector2(-10, -30)
+	header.size = Vector2(get_viewport_rect().size.x + 20, 150)
+	ui.add_child(header)
+
 	var undo_button := Button.new()
-	undo_button.text = "↺"
-	undo_button.add_theme_font_size_override("font_size", 36)
-	undo_button.custom_minimum_size = Vector2(72, 72)
-	undo_button.position = Vector2(20, get_viewport_rect().size.y - 92)
+	undo_button.icon = _ICON_UNDO
+	undo_button.custom_minimum_size = Vector2(76, 76)
+	undo_button.position = Vector2(20, get_viewport_rect().size.y - 96)
+	UITheme.style_icon_button(undo_button)
 	undo_button.pressed.connect(_on_undo_pressed)
 	ui.add_child(undo_button)
 
@@ -83,9 +102,9 @@ func _build_ui() -> void:
 
 	# Seviye düğmesi (üst-orta, "N/M") — seviye seçim ekranını açar + ilerleme göstergesi.
 	_level_button = Button.new()
-	_level_button.add_theme_font_size_override("font_size", 22)
-	_level_button.custom_minimum_size = Vector2(96, 52)
-	_level_button.position = Vector2(get_viewport_rect().size.x / 2.0 - 48, 8)
+	_level_button.custom_minimum_size = Vector2(108, 60)
+	_level_button.position = Vector2(get_viewport_rect().size.x / 2.0 - 54, 10)
+	UITheme.style_button(_level_button, false, 24)
 	_level_button.pressed.connect(_on_level_button_pressed)
 	ui.add_child(_level_button)
 
@@ -95,10 +114,10 @@ func _build_ui() -> void:
 
 	# Tarif/info düğmesi (yalnız karışım seviyelerinde görünür) — alt-orta.
 	_info_button = Button.new()
-	_info_button.text = "?"
-	_info_button.add_theme_font_size_override("font_size", 34)
-	_info_button.custom_minimum_size = Vector2(64, 64)
-	_info_button.position = Vector2(get_viewport_rect().size.x / 2.0 - 32, get_viewport_rect().size.y - 88)
+	_info_button.icon = _ICON_INFO
+	_info_button.custom_minimum_size = Vector2(76, 76)
+	_info_button.position = Vector2(get_viewport_rect().size.x / 2.0 - 38, get_viewport_rect().size.y - 96)
+	UITheme.style_icon_button(_info_button)
 	_info_button.pressed.connect(_on_info_pressed)
 	ui.add_child(_info_button)
 
@@ -111,8 +130,11 @@ func _build_ui() -> void:
 
 	# Koleksiyon düğmesi (keşfedilen/keşfedilebilir sayısı) + ekranı + kutlama.
 	_collection_button = Button.new()
-	_collection_button.custom_minimum_size = Vector2(84, 64)
-	_collection_button.position = Vector2(get_viewport_rect().size.x - 104, get_viewport_rect().size.y - 88)
+	_collection_button.icon = _ICON_PALETTE
+	_collection_button.custom_minimum_size = Vector2(116, 68)
+	_collection_button.position = Vector2(get_viewport_rect().size.x - 136, get_viewport_rect().size.y - 92)
+	UITheme.style_button(_collection_button, false, 22)
+	_collection_button.add_theme_color_override("icon_normal_color", UITheme.INK)
 	_collection_button.pressed.connect(_on_collection_pressed)
 	ui.add_child(_collection_button)
 	_update_collection_button()
@@ -125,11 +147,10 @@ func _build_ui() -> void:
 
 	# Eser düğmesi (mozaik ilerlemesi) + ekranı.
 	var artwork_button := Button.new()
-	artwork_button.text = "♥"
-	artwork_button.add_theme_font_size_override("font_size", 30)
-	artwork_button.add_theme_color_override("font_color", Color("e0645a"))
-	artwork_button.custom_minimum_size = Vector2(64, 60)
+	artwork_button.icon = _ICON_ARTWORK
+	artwork_button.custom_minimum_size = Vector2(76, 76)
 	artwork_button.position = Vector2(12, 46)
+	UITheme.style_icon_button(artwork_button)
 	artwork_button.pressed.connect(_on_artwork_pressed)
 	ui.add_child(artwork_button)
 
@@ -143,23 +164,15 @@ func _build_ui() -> void:
 	_title_screen.show_title(get_viewport_rect().size, _level_index + 1, _levels.size())
 
 
-## Yumuşak cozy arka plan gradyanı (en arka katman).
+## Sıcak kâğıt dokusu zemini (gerçek asset, en arka katman).
 func _build_background() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = -10
 	add_child(layer)
-	var gradient := Gradient.new()
-	gradient.set_color(0, Color("2b2540"))  # üst: yumuşak koyu mor
-	gradient.set_color(1, Color("161222"))  # alt: daha koyu
-	var texture := GradientTexture2D.new()
-	texture.gradient = gradient
-	texture.fill_from = Vector2(0.5, 0.0)
-	texture.fill_to = Vector2(0.5, 1.0)
-	texture.width = 4
-	texture.height = 256
 	var rect := TextureRect.new()
-	rect.texture = texture
+	rect.texture = UITheme.PAPER
 	rect.stretch_mode = TextureRect.STRETCH_SCALE
+	rect.modulate = UITheme.PAPER_TINT  # gri kâğıdı sıcak kreme çek
 	rect.position = Vector2.ZERO
 	rect.size = get_viewport_rect().size
 	layer.add_child(rect)
@@ -407,7 +420,7 @@ func _finish_transfer(dest_index: int, won: bool, should_flash: bool) -> void:
 		_new_color_popup.celebrate(_pending_new_color, get_viewport_rect().size, _settings.colorblind_mode)
 		_pending_new_color = null
 	if won:
-		_win_overlay.show_win(get_viewport_rect().size)
+		_win_overlay.show_win(get_viewport_rect().size, _settings.reduced_motion)
 
 
 func _set_selection(index: int) -> void:

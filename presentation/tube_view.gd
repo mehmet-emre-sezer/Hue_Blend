@@ -88,9 +88,9 @@ func _draw() -> void:
 	var height := _tube.capacity() * UnitVisual.UNIT_HEIGHT
 	var bounds := Rect2(0, 0, UnitVisual.TUBE_WIDTH, height)
 
-	# Cam kavanoz gövde (yuvarlak, hafif saydam)
+	# Cam kavanoz gövde (sıcak zeminde buzlu cam — hafif beyaz frost)
 	var glass := StyleBoxFlat.new()
-	glass.bg_color = Color(1, 1, 1, 0.05)
+	glass.bg_color = Color(1, 1, 1, 0.42)
 	glass.set_corner_radius_all(14)
 	glass.corner_radius_top_left = 8
 	glass.corner_radius_top_right = 8
@@ -131,7 +131,7 @@ func _draw() -> void:
 				UnitVisual.draw_symbol(self, run_color.symbol_id, Vector2(UnitVisual.TUBE_WIDTH / 2.0, symbol_y))
 
 	# Cam parlaması (sol dikey şerit)
-	draw_line(Vector2(7, 12), Vector2(7, height - 14), Color(1, 1, 1, 0.10), 3.0)
+	draw_line(Vector2(7, 12), Vector2(7, height - 14), Color(1, 1, 1, 0.55), 3.0)
 
 	if _flash > 0.0:
 		var flash_box := StyleBoxFlat.new()
@@ -146,5 +146,7 @@ func _draw() -> void:
 	outline.corner_radius_top_left = 8
 	outline.corner_radius_top_right = 8
 	outline.set_border_width_all(4 if _selected else 2)
-	outline.border_color = Color(1, 0.85, 0.4) if _selected else Color(1, 1, 1, 0.45)
+	var normal_edge := UITheme.INK_SOFT
+	normal_edge.a = 0.5
+	outline.border_color = UITheme.CLAY.darkened(0.15) if _selected else normal_edge
 	draw_style_box(outline, bounds)

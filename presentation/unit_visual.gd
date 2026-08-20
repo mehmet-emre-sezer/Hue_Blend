@@ -23,21 +23,42 @@ static func draw_unit(canvas: CanvasItem, rect: Rect2, color: Color, symbol_id: 
 		draw_symbol(canvas, symbol_id, rect.get_center())
 
 
-## Boya gövdesi: yuvarlak köşe + üst parlaklık (sıvı seheni). Sembol içermez.
+## Boya gövdesi: candy hissi — gövde + kenar + alt hacim gölgesi + üst gloss + parıltı.
 ## Tüplerde bir "sıvı sütunu" (aynı renk birleşik run) tek çağrıyla çizilebilsin diye ayrı.
 static func draw_blob(canvas: CanvasItem, rect: Rect2, color: Color) -> void:
+	# Gövde + candy kenar (tanım için hafif koyu çerçeve).
 	var body := StyleBoxFlat.new()
 	body.bg_color = color
 	body.set_corner_radius_all(int(CORNER))
+	body.set_border_width_all(2)
+	body.border_color = color.darkened(0.24)
+	body.anti_aliasing = true
 	canvas.draw_style_box(body, rect)
 
+	# Alt hacim gölgesi (altta yumuşak koyulaşma → hacim/derinlik).
+	var shade := StyleBoxFlat.new()
+	var shade_color := color.darkened(0.22)
+	shade_color.a = 0.40
+	shade.bg_color = shade_color
+	shade.corner_radius_bottom_left = int(CORNER)
+	shade.corner_radius_bottom_right = int(CORNER)
+	var shade_h := rect.size.y * 0.30
+	canvas.draw_style_box(shade, Rect2(rect.position + Vector2(0, rect.size.y - shade_h), Vector2(rect.size.x, shade_h)))
+
+	# Üst gloss bandı (parlak, yuvarlak üst — şekerli seheni).
 	var gloss := StyleBoxFlat.new()
-	var gloss_color := color.lightened(0.35)
-	gloss_color.a = 0.4
+	var gloss_color := color.lightened(0.42)
+	gloss_color.a = 0.6
 	gloss.bg_color = gloss_color
-	gloss.set_corner_radius_all(int(CORNER * 0.7))
-	var gloss_rect := Rect2(rect.position + Vector2(5, 4), Vector2(rect.size.x - 10, minf(rect.size.y * 0.32, 22.0)))
-	canvas.draw_style_box(gloss, gloss_rect)
+	gloss.corner_radius_top_left = int(CORNER)
+	gloss.corner_radius_top_right = int(CORNER)
+	gloss.corner_radius_bottom_left = int(CORNER * 0.6)
+	gloss.corner_radius_bottom_right = int(CORNER * 0.6)
+	var gloss_h := minf(rect.size.y * 0.40, 26.0)
+	canvas.draw_style_box(gloss, Rect2(rect.position + Vector2(4, 4), Vector2(rect.size.x - 8, gloss_h)))
+
+	# Specular parıltı (küçük beyaz nokta, sol-üst).
+	canvas.draw_circle(rect.position + Vector2(rect.size.x * 0.30, 11.0), 4.5, Color(1, 1, 1, 0.55))
 
 
 static func draw_symbol(canvas: CanvasItem, symbol_id: StringName, center: Vector2) -> void:

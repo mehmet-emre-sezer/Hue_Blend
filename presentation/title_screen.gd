@@ -22,7 +22,6 @@ const _PALETTE := [
 const _PLAY_ICON := preload("res://assets/icons/play.svg")
 
 var _play_button: Button
-var _bg: GradientTexture2D
 var _font_title: FontVariation
 var _font_num: FontVariation
 var _current := 1
@@ -35,24 +34,15 @@ func _ready() -> void:
 	_font_title = UITheme.font_weight(600)
 	_font_num = UITheme.font_weight(600)
 
-	_bg = GradientTexture2D.new()
-	var gradient := Gradient.new()
-	gradient.set_color(0, UITheme.BG_TOP)
-	gradient.set_color(1, UITheme.BG_BOTTOM)
-	_bg.gradient = gradient
-	_bg.fill_from = Vector2(0.5, 0.0)
-	_bg.fill_to = Vector2(0.5, 1.0)
-	_bg.width = 8
-	_bg.height = 256
-
 	_play_button = Button.new()
 	_play_button.icon = _PLAY_ICON
 	_play_button.expand_icon = true       # ikon buton içinde büyür (oran korunur)
-	_play_button.custom_minimum_size = Vector2(150, 104)
-	UITheme.style_clay_button(_play_button, UITheme.CLAY, UITheme.CLAY_INK, 46)
-	_play_button.add_theme_color_override("icon_normal_color", UITheme.CLAY_INK)
-	_play_button.add_theme_color_override("icon_hover_color", UITheme.CLAY_INK)
-	_play_button.add_theme_color_override("icon_pressed_color", UITheme.CLAY_INK)
+	_play_button.custom_minimum_size = Vector2(168, 108)
+	UITheme.style_button(_play_button, true, 46)  # birincil = sarı Kenney butonu
+	_play_button.expand_icon = true
+	_play_button.add_theme_color_override("icon_normal_color", UITheme.INK)
+	_play_button.add_theme_color_override("icon_hover_color", UITheme.INK)
+	_play_button.add_theme_color_override("icon_pressed_color", UITheme.INK)
 	_play_button.pressed.connect(_on_play_button)
 	add_child(_play_button)
 	hide()
@@ -73,8 +63,8 @@ func _on_play_button() -> void:
 
 
 func _draw() -> void:
-	# Sıcak atölye zemini (opak — açılışta yalnız bu görünür).
-	draw_texture_rect(_bg, Rect2(Vector2.ZERO, size), false)
+	# Sıcak kâğıt dokusu zemini (gerçek asset, opak — açılışta yalnız bu görünür).
+	draw_texture_rect(UITheme.PAPER, Rect2(Vector2.ZERO, size), false, UITheme.PAPER_TINT)
 
 	# Boya-paleti logosu: yumuşak yay boyunca örtüşen damlalar + altlarında sıcak gölge.
 	var logo_center := Vector2(size.x / 2.0, size.y * 0.28)
@@ -110,7 +100,7 @@ func _draw_dab(center: Vector2, radius: float, color: Color) -> void:
 func _draw_level_chip(center: Vector2) -> void:
 	var chip_size := Vector2(232, 96)
 	var rect := Rect2(center - chip_size / 2.0, chip_size)
-	var box := UITheme.clay_box(UITheme.SURFACE, UITheme.SURFACE_LINE, 8, 5.0)
+	var box := UITheme.panel_box(0)  # gerçek Kenney panel texture
 	draw_style_box(box, rect)
 
 	# Büyük mevcut seviye numarası (gerçek font).
